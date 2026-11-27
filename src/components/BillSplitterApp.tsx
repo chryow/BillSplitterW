@@ -507,9 +507,13 @@ export function BillSplitterApp() {
         {step === 1 && (
           <StartStep
             currency={bill.currency}
+            isSignedIn={Boolean(user)}
+            supabaseEnabled={supabaseEnabled}
+            authLoading={authLoading}
             hasActiveBill={hasValidItems}
             activeMerchant={bill.merchantName}
             activeTotal={activeTotal}
+            onSignInGoogle={handleSignInGoogle}
             onScanSuccess={handleScanSuccess}
             onStartManual={handleStartManual}
             onTrySample={handleTrySample}

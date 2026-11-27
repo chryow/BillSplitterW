@@ -4,11 +4,12 @@ A fast, minimalist, mobile-first Split Bill Web App (PWA) designed for everyday 
 
 ## Features
 
-- **Zero Login Wall (Guest Mode):** Open straight into **Scan Receipt**, **Manual Split**, or **Try Sample Receipt**—active bills and payment info auto-save locally in `localStorage`.
-- **Optional Login Mode (Google Sign-In via Supabase):** Sign in anytime to unlock **Saved Split History**, **Synced Payment Info** across devices, **Saved Frequent Friends**, and **Shareable Read-Only Bill Links** (`/bill/[slug]`).
+- **Zero Login Wall (Guest Mode):** Open straight into **Manual Split** or **Try Sample Receipt**—active bills and payment info auto-save locally in `localStorage`.
+- **Login Mode (Google Sign-In via Supabase):** Sign in anytime to unlock **AI Receipt Scanning** (`10 scans/day` per account), **Saved Split History**, **Synced Payment Info** across devices, **Saved Frequent Friends**, and **Shareable Read-Only Bill Links** (`/bill/[slug]`).
 - **Privacy-First Receipt OCR (`POST /api/scan-receipt`):**
+  - Requires an authenticated Supabase user (`401 AUTH_REQUIRED` for unauthenticated requests) with per-user daily rate limiting (`10/day`, configurable in `src/lib/config.ts`).
   - Client-side HTML Canvas resize (`max width 1280px`) and JPEG compression (`0.75` quality, `< 2 MB`)—raw photos are discarded immediately after extraction.
-  - Server-side MIME + magic-byte + 2 MB validation, SHA-256 deduplication cache, daily IP rate limit (`10/day`, configurable in `src/lib/config.ts`), and `@google/genai` (`gemini-3.5-flash-lite`) Structured JSON Output with `ThinkingLevel.MINIMAL`.
+  - Server-side MIME + magic-byte + 2 MB validation, SHA-256 deduplication cache, and `@google/genai` (`gemini-3.5-flash-lite`) Structured JSON Output with `ThinkingLevel.MINIMAL`.
   - Graceful fallback into Manual Entry if `GEMINI_API_KEY` is missing, rate-limited (`429`), or parsing fails.
 - **4-Step Fast Workflow:**
   1. **Capture / Manual / Sample Receipt** (Indonesian restaurant sample with PB1, service charge, discount, and multi-qty items).

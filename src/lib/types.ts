@@ -129,6 +129,7 @@ export interface UserProfile {
 
 export interface ScanApiError {
   code:
+    | "AUTH_REQUIRED"
     | "MISSING_API_KEY"
     | "RATE_LIMITED"
     | "INVALID_FILE"
