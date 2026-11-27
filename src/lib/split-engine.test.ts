@@ -1,0 +1,366 @@
+import { describe, expect, it } from "vitest";
+import {
+  allocateLargestRemainder,
+  calculateSplit,
+  checkReceiptMath,
+  splitItemQuantity,
+} from "./split-engine";
+import type { BillItem, Participant } from "./types";
+
+const P_YOU: Participant = { id: "p1", name: "You", color: "#10B981" };
+const P_BUDI: Participant = { id: "p2", name: "Budi", color: "#38BDF8" };
+const P_SARI: Participant = { id: "p3", name: "Sari", color: "#F59E0B" };
+
+describe("split-engine", () => {
+  it("handles single-owner items cleanly in IDR", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Nasi Goreng",
+        qty: 1,
+        unitPrice: 45000,
+        totalPrice: 45000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Mie Ayam",
+        qty: 1,
+        unitPrice: 35000,
+        totalPrice: 35000,
+        assigneeIds: ["p2"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(80000);
+    expect(result.sumOfPeopleTotals).toBe(80000);
+    expect(result.people[0].total).toBe(45000);
+    expect(result.people[1].total).toBe(35000);
+    expect(result.unassignedItemIds).toEqual([]);
+  });
+
+  it("splits multi-person shared items evenly and distributes 1-unit remainders", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Shared Platter",
+        qty: 1,
+        unitPrice: 100000,
+        totalPrice: 100000,
+        assigneeIds: ["p1", "p2", "p3"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(100000);
+    expect(result.sumOfPeopleTotals).toBe(100000);
+    const totals = result.people.map((p) => p.total).sort((a, b) => b - a);
+    expect(totals).toEqual([33334, 33333, 33333]);
+  });
+
+  it("applies proportional tax, service charge, and discount accurately", () => {
+    // Subtotals: You = 60,000 (60%), Budi = 40,000 (40%), Total items = 100,000
+    // Tax = 10,000, Service = 5,000, Discount = 20,000 => Grand Total = 95,000
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Steak",
+        qty: 1,
+        unitPrice: 60000,
+        totalPrice: 60000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Pasta",
+        qty: 1,
+        unitPrice: 40000,
+        totalPrice: 40000,
+        assigneeIds: ["p2"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 10000,
+      serviceCharge: 5000,
+      discount: 20000,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(95000);
+    expect(result.sumOfPeopleTotals).toBe(95000);
+
+    // You (60%): 60,000 + 6,000 + 3,000 - 12,000 = 57,000
+    expect(result.people[0].itemSubtotal).toBe(60000);
+    expect(result.people[0].taxShare).toBe(6000);
+    expect(result.people[0].serviceShare).toBe(3000);
+    expect(result.people[0].discountShare).toBe(12000);
+    expect(result.people[0].total).toBe(57000);
+
+    // Budi (40%): 40,000 + 4,000 + 2,000 - 8,000 = 38,000
+    expect(result.people[1].itemSubtotal).toBe(40000);
+    expect(result.people[1].taxShare).toBe(4000);
+    expect(result.people[1].serviceShare).toBe(2000);
+    expect(result.people[1].discountShare).toBe(8000);
+    expect(result.people[1].total).toBe(38000);
+  });
+
+  it("supports equal fee & discount split mode", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Wagyu",
+        qty: 1,
+        unitPrice: 150000,
+        totalPrice: 150000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Iced Tea",
+        qty: 1,
+        unitPrice: 50000,
+        totalPrice: 50000,
+        assigneeIds: ["p2"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 20000,
+      serviceCharge: 10000,
+      discount: 10000,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "equal",
+    });
+
+    expect(result.grandTotal).toBe(220000);
+    expect(result.sumOfPeopleTotals).toBe(220000);
+    // Equal fees: +10,000 tax, +5,000 service, -5,000 discount = +10,000 each
+    expect(result.people[0].total).toBe(160000);
+    expect(result.people[1].total).toBe(60000);
+  });
+
+  it("handles zero-subtotal edge cases gracefully without NaN", () => {
+    const result = calculateSplit({
+      currency: "IDR",
+      items: [
+        {
+          id: "i1",
+          name: "Free Appetizer",
+          qty: 1,
+          unitPrice: 0,
+          totalPrice: 0,
+          assigneeIds: ["p1", "p2"],
+        },
+      ],
+      tax: 10001,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(10001);
+    expect(result.sumOfPeopleTotals).toBe(10001);
+    expect(result.people.map((p) => p.total).sort((a, b) => b - a)).toEqual([
+      5001,
+      5000,
+    ]);
+    expect(Number.isNaN(result.people[0].total)).toBe(false);
+  });
+
+  it("handles zero participants and empty items cleanly", () => {
+    const result = calculateSplit({
+      currency: "USD",
+      items: [],
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(0);
+    expect(result.sumOfPeopleTotals).toBe(0);
+    expect(result.people).toEqual([]);
+  });
+
+  it("guarantees exact cent-level rounding remainder distribution for 2-decimal currencies (USD)", () => {
+    // $10.00 split 3 ways + $1.00 tax + $0.50 service - $0.25 discount = $11.25
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Nachos",
+        qty: 1,
+        unitPrice: 10,
+        totalPrice: 10,
+        assigneeIds: ["p1", "p2", "p3"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "USD",
+      items,
+      tax: 1,
+      serviceCharge: 0.5,
+      discount: 0.25,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(11.25);
+    expect(result.sumOfPeopleTotals).toBe(11.25);
+    const manualSum = Number(
+      result.people.reduce((acc, p) => acc + p.total, 0).toFixed(2)
+    );
+    expect(manualSum).toBe(11.25);
+    for (const p of result.people) {
+      const cardSum = Number(
+        (p.itemSubtotal + p.taxShare + p.serviceShare - p.discountShare).toFixed(2)
+      );
+      expect(p.total).toBe(cardSum);
+    }
+  });
+
+  it("prevents negative individual totals when equal discount exceeds one person's items", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Big Meal",
+        qty: 1,
+        unitPrice: 90000,
+        totalPrice: 90000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Mineral Water",
+        qty: 1,
+        unitPrice: 5000,
+        totalPrice: 5000,
+        assigneeIds: ["p2"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 0,
+      serviceCharge: 0,
+      discount: 20000,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "equal",
+    });
+
+    expect(result.grandTotal).toBe(75000);
+    expect(result.sumOfPeopleTotals).toBe(75000);
+    expect(result.people[1].total).toBe(0);
+    expect(result.people[0].total).toBe(75000);
+  });
+
+  it("handles zero-decimal JPY rounding remainders accurately", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Ramen",
+        qty: 1,
+        unitPrice: 1250,
+        totalPrice: 1250,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Gyoza",
+        qty: 1,
+        unitPrice: 750,
+        totalPrice: 750,
+        assigneeIds: ["p2", "p3"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "JPY",
+      items,
+      tax: 201,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(2201);
+    expect(result.sumOfPeopleTotals).toBe(2201);
+    result.people.forEach((p) => {
+      expect(Number.isInteger(p.total)).toBe(true);
+    });
+  });
+
+  it("splits multi-quantity items into separate 1x rows preserving exact total", () => {
+    let counter = 1;
+    const item: BillItem = {
+      id: "latte",
+      name: "Iced Latte",
+      qty: 3,
+      unitPrice: 33333,
+      totalPrice: 100000,
+      assigneeIds: ["p1"],
+    };
+
+    const split = splitItemQuantity(item, "IDR", () => `gen-${counter++}`);
+    expect(split).toHaveLength(3);
+    expect(split.every((r) => r.qty === 1)).toBe(true);
+    expect(split.reduce((sum, r) => sum + r.totalPrice, 0)).toBe(100000);
+    expect(split[0].id).toBe("latte");
+  });
+
+  it("detects exact receipt math matches and differences", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Coffee",
+        qty: 2,
+        unitPrice: 35000,
+        totalPrice: 70000,
+        assigneeIds: [],
+      },
+    ];
+
+    const match = checkReceiptMath(items, 7000, 3500, 5000, 75500, "IDR");
+    expect(match.isMatch).toBe(true);
+    expect(match.difference).toBe(0);
+
+    const mismatch = checkReceiptMath(items, 7000, 3500, 5000, 78000, "IDR");
+    expect(mismatch.isMatch).toBe(false);
+    expect(mismatch.difference).toBe(-2500);
+  });
+
+  it("allocateLargestRemainder always sums exactly to totalMinor", () => {
+    const shares = allocateLargestRemainder(100, [1, 1, 1]);
+    expect(shares.reduce((a, b) => a + b, 0)).toBe(100);
+    expect(shares.sort((a, b) => b - a)).toEqual([34, 33, 33]);
+  });
+});
