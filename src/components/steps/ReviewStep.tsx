@@ -21,6 +21,7 @@ import type { BillItem, BillState } from "@/lib/types";
 interface ReviewStepProps {
   bill: BillState;
   onUpdateBill: (updater: (prev: BillState) => BillState) => void;
+  onDeleteItemWithUndo: (itemId: string) => void;
   onOpenCurrency: () => void;
   onBack: () => void;
   onNext: () => void;
@@ -43,6 +44,7 @@ const SERVICE_PRESETS = [
 export function ReviewStep({
   bill,
   onUpdateBill,
+  onDeleteItemWithUndo,
   onOpenCurrency,
   onBack,
   onNext,
@@ -145,10 +147,7 @@ export function ReviewStep({
   };
 
   const handleDeleteItem = (id: string) => {
-    onUpdateBill((prev) => ({
-      ...prev,
-      items: prev.items.filter((item) => item.id !== id),
-    }));
+    onDeleteItemWithUndo(id);
   };
 
   // Standard restaurant convention: Service % applies to items subtotal;

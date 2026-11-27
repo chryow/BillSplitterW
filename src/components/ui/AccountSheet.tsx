@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Camera,
   Check,
   Clock,
   Copy,
+  CopyPlus,
   ExternalLink,
   Globe,
   Lock,
@@ -22,7 +23,7 @@ import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
 import type { SavedBillSummary } from "@/lib/types";
 import { formatWhatsAppSummary } from "@/lib/whatsapp-formatter";
 
-interface AccountSheetProps {
+export interface AccountSheetProps {
   open: boolean;
   onClose: () => void;
   supabaseEnabled: boolean;
@@ -38,6 +39,7 @@ interface AccountSheetProps {
   onSignInGoogle: () => void;
   onSignOut: () => void;
   onOpenBill: (bill: SavedBillSummary) => void;
+  onDuplicateBill: (bill: SavedBillSummary) => void;
   onDeleteBill: (billId: string) => void;
   onTogglePublic: (billId: string, nextPublic: boolean) => void;
 }
@@ -53,21 +55,42 @@ export function AccountSheet({
   onSignInGoogle,
   onSignOut,
   onOpenBill,
+  onDuplicateBill,
   onDeleteBill,
   onTogglePublic,
 }: AccountSheetProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopyWhatsApp = async (bill: SavedBillSummary) => {
-    const split = calculateSplit({
-      currency: bill.currency,
-      items: bill.items,
-      tax: bill.tax,
-      serviceCharge: bill.service_charge,
-      discount: bill.discount,
-      participants: bill.participants,
-      feeSplitMode: bill.fee_split_mode,
-    });
+  const enrichedBills = useMemo(
+    () =>
+      bills.map((bill) => {
+        const split = calculateSplit({
+          currency: bill.currency,
+          items: bill.items,
+          tax: bill.tax,
+          serviceCharge: bill.service_charge,
+          discount: bill.discount,
+          participants: bill.participants,
+          feeSplitMode: "proportional",
+        });
+        const settlement = computeSettlementSummary(
+          split,
+          bill.paid_by_participant_id,
+          bill.settled_participant_ids
+        );
+        const dateLabel = new Date(bill.created_at).toLocaleDateString(
+          undefined,
+          { month: "short", day: "numeric" }
+        );
+        return { bill, split, settlement, dateLabel };
+      }),
+    [bills]
+  );
+
+  const handleCopyWhatsApp = async (
+    entry: (typeof enrichedBills)[number]
+  ) => {
+    const { bill, split } = entry;
     const shareUrl =
       bill.is_public && typeof window !== "undefined"
         ? `${window.location.origin}/bill/${bill.share_slug}`
@@ -255,31 +278,14 @@ export function AccountSheet({
                   No saved bills yet
                 </p>
                 <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-                  Tap &ldquo;Save to History&rdquo; on Step 4 to keep a bill and
-                  generate a shareable link.
+                  Tap &ldquo;Save&rdquo; on Step 4 to keep a bill and generate a
+                  shareable link.
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {bills.map((bill) => {
-                  const dateLabel = new Date(bill.created_at).toLocaleDateString(
-                    undefined,
-                    { month: "short", day: "numeric" }
-                  );
-                  const split = calculateSplit({
-                    currency: bill.currency,
-                    items: bill.items,
-                    tax: bill.tax,
-                    serviceCharge: bill.service_charge,
-                    discount: bill.discount,
-                    participants: bill.participants,
-                    feeSplitMode: "proportional",
-                  });
-                  const settlement = computeSettlementSummary(
-                    split,
-                    bill.paid_by_participant_id,
-                    bill.settled_participant_ids
-                  );
+                {enrichedBills.map((entry) => {
+                  const { bill, settlement, dateLabel } = entry;
                   return (
                     <div
                       key={bill.id}
@@ -325,7 +331,7 @@ export function AccountSheet({
                       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)] pt-2">
                         <button
                           type="button"
-                          onClick={() => handleCopyWhatsApp(bill)}
+                          onClick={() => handleCopyWhatsApp(entry)}
                           className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
                         >
                           {copiedId === `wa-${bill.id}` ? (
@@ -347,9 +353,22 @@ export function AccountSheet({
                             ) : (
                               <ExternalLink className="h-3 w-3" />
                             )}
-                            Copy Link
+                            Link
                           </button>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDuplicateBill(bill);
+                            onClose();
+                          }}
+                          title="Reuse merchant & group for a new split"
+                          className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                        >
+                          <CopyPlus className="h-3 w-3" />
+                          Reuse
+                        </button>
 
                         <button
                           type="button"

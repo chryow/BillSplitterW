@@ -6,9 +6,9 @@ import {
 } from "@/lib/config";
 import { extractReceiptWithGemini } from "@/lib/server/gemini-ocr";
 import {
-  getCachedReceipt,
+  getPersistentCachedReceipt,
   hashImageBuffer,
-  setCachedReceipt,
+  setPersistentCachedReceipt,
 } from "@/lib/server/receipt-cache";
 import {
   consumeScanQuotaForUser,
@@ -148,15 +148,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // SHA-256 deduplication cache check (avoids duplicate Gemini calls & preserves quota on re-scans)
+  // Two-tier SHA-256 deduplication cache (memory + Supabase ocr_cache)
   const imageHash = hashImageBuffer(buffer);
-  const cached = getCachedReceipt(imageHash);
+  const cached = await getPersistentCachedReceipt(supabase, imageHash);
   if (cached) {
     const quota = await getScanQuotaForUser(supabase, user.id, MAX_SCANS_PER_DAY);
-    return NextResponse.json(cached, {
+    return NextResponse.json(cached.data, {
       status: 200,
       headers: {
-        "X-Receipt-Cache": "HIT",
+        "X-Receipt-Cache": cached.layer,
         "X-RateLimit-Remaining": String(quota.remaining),
         "X-RateLimit-Limit": String(quota.limit),
       },
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
 
   try {
     const extracted = await extractReceiptWithGemini(buffer, file.type, apiKey);
-    setCachedReceipt(imageHash, extracted);
+    await setPersistentCachedReceipt(supabase, imageHash, extracted);
 
     return NextResponse.json(extracted, {
       status: 200,

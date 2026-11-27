@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { StepIndicator } from "@/components/layout/StepIndicator";
@@ -7,8 +8,6 @@ import { AssignStep } from "@/components/steps/AssignStep";
 import { ReviewStep } from "@/components/steps/ReviewStep";
 import { StartStep } from "@/components/steps/StartStep";
 import { SummaryStep } from "@/components/steps/SummaryStep";
-import { AccountSheet } from "@/components/ui/AccountSheet";
-import { CurrencySheet } from "@/components/ui/CurrencySheet";
 import { PARTICIPANT_COLORS } from "@/lib/config";
 import { normalizeCurrencyCode, roundForCurrency } from "@/lib/currency";
 import {
@@ -53,11 +52,28 @@ import type {
 } from "@/lib/types";
 import { hasPaymentInfo } from "@/lib/whatsapp-formatter";
 
+// Lazy-load secondary sheets so initial mobile hydration stays fast & lean
+const CurrencySheet = dynamic(
+  () => import("@/components/ui/CurrencySheet").then((m) => m.CurrencySheet),
+  { ssr: false }
+);
+const AccountSheet = dynamic(
+  () => import("@/components/ui/AccountSheet").then((m) => m.AccountSheet),
+  { ssr: false }
+);
+
 interface SignedInUser {
   id: string;
   email: string | null;
   displayName: string;
   avatarUrl: string | null;
+}
+
+interface ToastState {
+  id: number;
+  message: string;
+  undoLabel?: string;
+  onUndo?: () => void;
 }
 
 export function BillSplitterApp() {
@@ -82,16 +98,30 @@ export function BillSplitterApp() {
   const [billsLoading, setBillsLoading] = useState(false);
   const [savedFriends, setSavedFriends] = useState<SavedFriend[]>([]);
   const [savingBill, setSavingBill] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const paymentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showToast = useCallback((message: string) => {
-    setToast(message);
-    setTimeout(() => {
-      setToast((prev) => (prev === message ? null : prev));
-    }, 2400);
-  }, []);
+  const showToast = useCallback(
+    (message: string, options?: { undoLabel?: string; onUndo?: () => void }) => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+      const id = Date.now();
+      setToast({
+        id,
+        message,
+        undoLabel: options?.undoLabel,
+        onUndo: options?.onUndo,
+      });
+      const duration = options?.onUndo ? 4500 : 2400;
+      toastTimerRef.current = setTimeout(() => {
+        setToast((prev) => (prev?.id === id ? null : prev));
+      }, duration);
+    },
+    []
+  );
 
   // Hydrate persisted bill, payment info, and theme from localStorage after mount
   useEffect(() => {
@@ -135,9 +165,16 @@ export function BillSplitterApp() {
         limit?: number;
         resetAt?: string;
       };
-      if (data.signedIn && typeof data.remaining === "number" && typeof data.limit === "number") {
+      if (
+        data.signedIn &&
+        typeof data.remaining === "number" &&
+        typeof data.limit === "number"
+      ) {
         setScanQuota({
-          used: typeof data.used === "number" ? data.used : Math.max(0, data.limit - data.remaining),
+          used:
+            typeof data.used === "number"
+              ? data.used
+              : Math.max(0, data.limit - data.remaining),
           remaining: data.remaining,
           limit: data.limit,
           resetAt: data.resetAt,
@@ -288,6 +325,33 @@ export function BillSplitterApp() {
     }
   };
 
+  const handleDeleteItemWithUndo = (itemId: string) => {
+    const idx = bill.items.findIndex((i) => i.id === itemId);
+    if (idx === -1) return;
+    const removedItem = bill.items[idx];
+
+    setBill((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.id !== itemId),
+    }));
+
+    showToast(
+      `Removed ${removedItem.name.trim() || "item"}`,
+      {
+        undoLabel: "Undo",
+        onUndo: () => {
+          setBill((prev) => {
+            if (prev.items.some((i) => i.id === removedItem.id)) return prev;
+            const nextItems = [...prev.items];
+            nextItems.splice(Math.min(idx, nextItems.length), 0, removedItem);
+            return { ...prev, items: nextItems };
+          });
+          setToast(null);
+        },
+      }
+    );
+  };
+
   const syncSettlementsToCloud = useCallback(
     (
       billId: string | null,
@@ -417,7 +481,8 @@ export function BillSplitterApp() {
         warnings: data.warnings ?? [],
         participants,
         feeSplitMode: "proportional",
-        paidByParticipantId: prev.paidByParticipantId ?? participants[0]?.id ?? null,
+        paidByParticipantId:
+          prev.paidByParticipantId ?? participants[0]?.id ?? null,
         settledParticipantIds: [],
       };
     });
@@ -445,9 +510,21 @@ export function BillSplitterApp() {
   };
 
   const handleNewSplit = () => {
+    const previousBill = bill;
+    const previousStep = step;
+
     clearActiveSession();
     setBill(createEmptyBillState(bill.currency, defaultSelfName));
     setStep(1);
+
+    showToast("Started a fresh bill", {
+      undoLabel: "Undo",
+      onUndo: () => {
+        setBill(previousBill);
+        setStep(previousStep);
+        setToast(null);
+      },
+    });
   };
 
   const handleSignInGoogle = async () => {
@@ -534,6 +611,51 @@ export function BillSplitterApp() {
     setStep(4);
   };
 
+  const handleDuplicateSavedBill = (saved: SavedBillSummary) => {
+    const participants =
+      saved.participants.length > 0
+        ? saved.participants.map((p, idx) => ({
+            ...p,
+            id: `dup-p-${Date.now()}-${idx}`,
+          }))
+        : [
+            {
+              id: `dup-p-${Date.now()}-0`,
+              name: defaultSelfName,
+              color: PARTICIPANT_COLORS[0],
+            },
+          ];
+
+    setBill({
+      savedBillId: null,
+      shareSlug: null,
+      isPublic: true,
+      merchantName: saved.merchant_name,
+      currency: saved.currency,
+      items: [
+        {
+          id: `dup-item-${Date.now()}-0`,
+          name: "",
+          qty: 1,
+          unitPrice: 0,
+          totalPrice: 0,
+          assigneeIds: [],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      scannedGrandTotal: null,
+      warnings: [],
+      participants,
+      feeSplitMode: "proportional",
+      paidByParticipantId: participants[0]?.id ?? null,
+      settledParticipantIds: [],
+    });
+    setStep(2);
+    showToast(`Reused group from ${saved.merchant_name || "past bill"}`);
+  };
+
   const handleDeleteSavedBill = async (billId: string) => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -594,14 +716,18 @@ export function BillSplitterApp() {
     return false;
   };
 
-  const activeTotal = checkReceiptMath(
-    bill.items,
-    bill.tax,
-    bill.serviceCharge,
-    bill.discount,
-    null,
-    bill.currency
-  ).computedGrandTotal;
+  const activeTotal = useMemo(
+    () =>
+      checkReceiptMath(
+        bill.items,
+        bill.tax,
+        bill.serviceCharge,
+        bill.discount,
+        null,
+        bill.currency
+      ).computedGrandTotal,
+    [bill.items, bill.tax, bill.serviceCharge, bill.discount, bill.currency]
+  );
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-app)]">
@@ -646,6 +772,7 @@ export function BillSplitterApp() {
           <ReviewStep
             bill={bill}
             onUpdateBill={setBill}
+            onDeleteItemWithUndo={handleDeleteItemWithUndo}
             onOpenCurrency={() => setCurrencyOpen(true)}
             onBack={() => setStep(1)}
             onNext={() => setStep(3)}
@@ -683,36 +810,50 @@ export function BillSplitterApp() {
         )}
       </main>
 
-      {/* Modals / Sheets */}
-      <CurrencySheet
-        open={currencyOpen}
-        onClose={() => setCurrencyOpen(false)}
-        selected={bill.currency}
-        onSelect={handleCurrencyChange}
-      />
+      {/* Lazy-loaded Modals / Sheets */}
+      {currencyOpen && (
+        <CurrencySheet
+          open={currencyOpen}
+          onClose={() => setCurrencyOpen(false)}
+          selected={bill.currency}
+          onSelect={handleCurrencyChange}
+        />
+      )}
 
-      <AccountSheet
-        open={accountOpen}
-        onClose={() => setAccountOpen(false)}
-        supabaseEnabled={supabaseEnabled}
-        user={user}
-        authLoading={authLoading}
-        bills={savedBills}
-        billsLoading={billsLoading}
-        onSignInGoogle={handleSignInGoogle}
-        onSignOut={handleSignOut}
-        onOpenBill={handleOpenSavedBill}
-        onDeleteBill={handleDeleteSavedBill}
-        onTogglePublic={handleToggleBillPublic}
-      />
+      {accountOpen && (
+        <AccountSheet
+          open={accountOpen}
+          onClose={() => setAccountOpen(false)}
+          supabaseEnabled={supabaseEnabled}
+          user={user}
+          authLoading={authLoading}
+          bills={savedBills}
+          billsLoading={billsLoading}
+          onSignInGoogle={handleSignInGoogle}
+          onSignOut={handleSignOut}
+          onOpenBill={handleOpenSavedBill}
+          onDuplicateBill={handleDuplicateSavedBill}
+          onDeleteBill={handleDeleteSavedBill}
+          onTogglePublic={handleToggleBillPublic}
+        />
+      )}
 
-      {/* Lightweight Toast */}
+      {/* Lightweight Toast with Optional Undo Action */}
       {toast && (
         <div
           role="status"
-          className="fixed top-16 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-medium text-[var(--text-primary)] shadow-lg animate-fade-in"
+          className="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-medium text-[var(--text-primary)] shadow-lg animate-fade-in"
         >
-          {toast}
+          <span>{toast.message}</span>
+          {toast.onUndo && (
+            <button
+              type="button"
+              onClick={toast.onUndo}
+              className="rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+            >
+              {toast.undoLabel ?? "Undo"}
+            </button>
+          )}
         </div>
       )}
     </div>
