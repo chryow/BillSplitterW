@@ -6,8 +6,11 @@ import {
   ArrowRight,
   Bookmark,
   Check,
+  Minus,
   Plus,
+  SlidersHorizontal,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { DEFAULT_QUICK_NAMES, PARTICIPANT_COLORS } from "@/lib/config";
@@ -30,6 +33,13 @@ interface AssignStepProps {
   onNext: () => void;
 }
 
+function getShareWeight(item: BillItem, participantId: string): number {
+  const w = item.assigneeShares?.[participantId];
+  return typeof w === "number" && Number.isFinite(w) && w >= 1
+    ? Math.round(w)
+    : 1;
+}
+
 export function AssignStep({
   bill,
   savedFriends,
@@ -44,6 +54,9 @@ export function AssignStep({
   const [activeItemId, setActiveItemId] = useState<string | null>(
     bill.items[0]?.id ?? null
   );
+  const [customShareItemIds, setCustomShareItemIds] = useState<
+    Record<string, boolean>
+  >({});
 
   const cur = bill.currency;
   const existingNamesLower = new Set(
@@ -79,20 +92,42 @@ export function AssignStep({
     onUpdateBill((prev) => ({
       ...prev,
       participants: [...prev.participants, participant],
+      paidByParticipantId: prev.paidByParticipantId ?? participant.id,
     }));
     setNewName("");
   };
 
   const removeParticipant = (participantId: string) => {
     if (bill.participants.length <= 1) return;
-    onUpdateBill((prev) => ({
-      ...prev,
-      participants: prev.participants.filter((p) => p.id !== participantId),
-      items: prev.items.map((item) => ({
-        ...item,
-        assigneeIds: item.assigneeIds.filter((id) => id !== participantId),
-      })),
-    }));
+    onUpdateBill((prev) => {
+      const remaining = prev.participants.filter((p) => p.id !== participantId);
+      const nextPaidBy =
+        prev.paidByParticipantId === participantId
+          ? remaining[0]?.id ?? null
+          : prev.paidByParticipantId;
+
+      return {
+        ...prev,
+        participants: remaining,
+        paidByParticipantId: nextPaidBy,
+        settledParticipantIds: prev.settledParticipantIds.filter(
+          (id) => id !== participantId
+        ),
+        items: prev.items.map((item) => {
+          const nextShares = item.assigneeShares
+            ? { ...item.assigneeShares }
+            : undefined;
+          if (nextShares) {
+            delete nextShares[participantId];
+          }
+          return {
+            ...item,
+            assigneeIds: item.assigneeIds.filter((id) => id !== participantId),
+            assigneeShares: nextShares,
+          };
+        }),
+      };
+    });
   };
 
   const toggleItemAssignee = (itemId: string, participantId: string) => {
@@ -101,13 +136,52 @@ export function AssignStep({
       items: prev.items.map((item) => {
         if (item.id !== itemId) return item;
         const exists = item.assigneeIds.includes(participantId);
+        const nextShares = item.assigneeShares ? { ...item.assigneeShares } : {};
+        if (exists) {
+          delete nextShares[participantId];
+        } else if (!nextShares[participantId]) {
+          nextShares[participantId] = 1;
+        }
         return {
           ...item,
           assigneeIds: exists
             ? item.assigneeIds.filter((id) => id !== participantId)
             : [...item.assigneeIds, participantId],
+          assigneeShares:
+            Object.keys(nextShares).length > 0 ? nextShares : undefined,
         };
       }),
+    }));
+  };
+
+  const adjustItemShare = (
+    itemId: string,
+    participantId: string,
+    delta: number
+  ) => {
+    onUpdateBill((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => {
+        if (item.id !== itemId) return item;
+        const current = getShareWeight(item, participantId);
+        const nextWeight = Math.min(20, Math.max(1, current + delta));
+        return {
+          ...item,
+          assigneeShares: {
+            ...(item.assigneeShares ?? {}),
+            [participantId]: nextWeight,
+          },
+        };
+      }),
+    }));
+  };
+
+  const resetItemSharesEqual = (itemId: string) => {
+    onUpdateBill((prev) => ({
+      ...prev,
+      items: prev.items.map((item) =>
+        item.id === itemId ? { ...item, assigneeShares: undefined } : item
+      ),
     }));
   };
 
@@ -123,6 +197,7 @@ export function AssignStep({
         return {
           ...item,
           assigneeIds: alreadyAll ? [] : allIds,
+          assigneeShares: undefined,
         };
       }),
     }));
@@ -145,7 +220,7 @@ export function AssignStep({
   return (
     <section className="space-y-4 pt-3 pb-28">
       {/* Participants Panel */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             People ({bill.participants.length})
@@ -264,6 +339,47 @@ export function AssignStep({
             ))}
           </div>
         )}
+
+        {/* Who Paid the Bill selector */}
+        {bill.participants.length > 1 && (
+          <div className="flex items-center gap-2 border-t border-[var(--border-subtle)] pt-2.5">
+            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[var(--text-muted)]">
+              <Wallet className="h-3 w-3" />
+              Paid by:
+            </span>
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              {bill.participants.map((person) => {
+                const isPayer = bill.paidByParticipantId === person.id;
+                return (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() =>
+                      onUpdateBill((prev) => ({
+                        ...prev,
+                        paidByParticipantId: person.id,
+                        settledParticipantIds: prev.settledParticipantIds.filter(
+                          (id) => id !== person.id
+                        ),
+                      }))
+                    }
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      isPayer
+                        ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                        : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: person.color }}
+                    />
+                    {person.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tap-to-Assign Items */}
@@ -288,6 +404,13 @@ export function AssignStep({
             const allAssigned =
               bill.participants.length > 0 &&
               bill.participants.every((p) => item.assigneeIds.includes(p.id));
+            const weights = assignees.map((p) => getShareWeight(item, p.id));
+            const totalShares = weights.reduce((a, b) => a + b, 0);
+            const hasCustomWeights =
+              assignees.length > 1 && weights.some((w) => w !== weights[0]);
+            const showCustomSteppers =
+              assignees.length > 1 &&
+              (Boolean(customShareItemIds[item.id]) || hasCustomWeights);
 
             return (
               <div
@@ -300,9 +423,7 @@ export function AssignStep({
               >
                 <button
                   type="button"
-                  onClick={() =>
-                    setActiveItemId(isOpen ? null : item.id)
-                  }
+                  onClick={() => setActiveItemId(isOpen ? null : item.id)}
                   className="flex min-h-[58px] w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
                 >
                   <div className="min-w-0 flex-1">
@@ -323,18 +444,26 @@ export function AssignStep({
                           Tap to assign
                         </span>
                       ) : (
-                        assignees.map((p) => (
-                          <span
-                            key={p.id}
-                            className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
-                          >
+                        assignees.map((p) => {
+                          const w = getShareWeight(item, p.id);
+                          return (
                             <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{ backgroundColor: p.color }}
-                            />
-                            {p.name}
-                          </span>
-                        ))
+                              key={p.id}
+                              className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: p.color }}
+                              />
+                              {p.name}
+                              {hasCustomWeights && (
+                                <span className="font-mono text-[10px] text-[var(--accent-text)]">
+                                  {w}/{totalShares}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -345,14 +474,16 @@ export function AssignStep({
                     </p>
                     {assignees.length > 1 && (
                       <p className="font-mono text-[11px] text-[var(--text-muted)] tabular-nums">
-                        ÷{assignees.length}
+                        {hasCustomWeights
+                          ? weights.join(":")
+                          : `÷${assignees.length}`}
                       </p>
                     )}
                   </div>
                 </button>
 
                 {isOpen && (
-                  <div className="border-t border-[var(--border-subtle)] px-3.5 py-3">
+                  <div className="space-y-3 border-t border-[var(--border-subtle)] px-3.5 py-3">
                     <div className="flex flex-wrap items-center gap-2">
                       {bill.participants.map((person) => {
                         const selected = item.assigneeIds.includes(person.id);
@@ -396,6 +527,96 @@ export function AssignStep({
                         </button>
                       )}
                     </div>
+
+                    {/* Unequal Custom Share Steppers (only surfaced when 2+ people share this item) */}
+                    {assignees.length > 1 && (
+                      <div className="border-t border-[var(--border-subtle)] pt-2.5">
+                        {!showCustomSteppers ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCustomShareItemIds((prev) => ({
+                                ...prev,
+                                [item.id]: true,
+                              }))
+                            }
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-text)]"
+                          >
+                            <SlidersHorizontal className="h-3 w-3" />
+                            Adjust unequal shares (e.g. 2:1 portions)
+                          </button>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-medium text-[var(--text-muted)]">
+                                Custom shares (total {totalShares})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  resetItemSharesEqual(item.id);
+                                  setCustomShareItemIds((prev) => ({
+                                    ...prev,
+                                    [item.id]: false,
+                                  }));
+                                }}
+                                className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                              >
+                                Reset equal
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                              {assignees.map((person) => {
+                                const weight = getShareWeight(item, person.id);
+                                return (
+                                  <div
+                                    key={person.id}
+                                    className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 py-1.5"
+                                  >
+                                    <div className="flex min-w-0 items-center gap-1.5">
+                                      <span
+                                        className="h-2 w-2 shrink-0 rounded-full"
+                                        style={{ backgroundColor: person.color }}
+                                      />
+                                      <span className="truncate text-xs font-medium text-[var(--text-primary)]">
+                                        {person.name}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        disabled={weight <= 1}
+                                        onClick={() =>
+                                          adjustItemShare(item.id, person.id, -1)
+                                        }
+                                        aria-label={`Decrease ${person.name}'s share`}
+                                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-35"
+                                      >
+                                        <Minus className="h-3 w-3" />
+                                      </button>
+                                      <span className="w-7 text-center font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums">
+                                        {weight}×
+                                      </span>
+                                      <button
+                                        type="button"
+                                        disabled={weight >= 20}
+                                        onClick={() =>
+                                          adjustItemShare(item.id, person.id, 1)
+                                        }
+                                        aria-label={`Increase ${person.name}'s share`}
+                                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-35"
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

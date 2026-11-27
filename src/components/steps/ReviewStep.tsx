@@ -30,6 +30,16 @@ function makeItemId(): string {
   return `item-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+const TAX_PRESETS = [
+  { label: "+10% PB1", rate: 0.1 },
+  { label: "+11% PPN", rate: 0.11 },
+] as const;
+
+const SERVICE_PRESETS = [
+  { label: "+5%", rate: 0.05 },
+  { label: "+7%", rate: 0.07 },
+] as const;
+
 export function ReviewStep({
   bill,
   onUpdateBill,
@@ -139,6 +149,19 @@ export function ReviewStep({
       ...prev,
       items: prev.items.filter((item) => item.id !== id),
     }));
+  };
+
+  // Standard restaurant convention: Service % applies to items subtotal;
+  // PB1 / PPN tax applies to items subtotal + service charge.
+  const applyServiceRate = (rate: number) => {
+    const nextService = roundForCurrency(mathCheck.computedSubtotal * rate, cur);
+    onUpdateBill((prev) => ({ ...prev, serviceCharge: nextService }));
+  };
+
+  const applyTaxRate = (rate: number) => {
+    const taxableBase = mathCheck.computedSubtotal + bill.serviceCharge;
+    const nextTax = roundForCurrency(taxableBase * rate, cur);
+    onUpdateBill((prev) => ({ ...prev, tax: nextTax }));
   };
 
   const validItemsCount = bill.items.filter(
@@ -319,37 +342,63 @@ export function ReviewStep({
         </div>
       </div>
 
-      {/* Tax, Service Charge & Discount */}
+      {/* Tax, Service Charge & Discount with Quick % Preset Chips */}
       <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-          Fees &amp; Discounts
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Fees &amp; Discounts
+          </h2>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            Always split proportionally
+          </span>
+        </div>
 
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-          <label className="block">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
-              Tax (PB1 / PPN)
-            </span>
-            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
-              <span className="font-mono text-xs text-[var(--text-muted)]">
-                {currencyInfo.symbol}
+        <div className="space-y-3">
+          {/* Service Charge + Quick % Chips */}
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                Service Charge
               </span>
-              <AmountInput
-                value={bill.tax}
-                currency={cur}
-                onChange={(nextTax) =>
-                  onUpdateBill((prev) => ({ ...prev, tax: nextTax }))
-                }
-                ariaLabel="Tax amount"
-                className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
-              />
+              <div className="flex items-center gap-1">
+                {SERVICE_PRESETS.map((preset) => {
+                  const preview = roundForCurrency(
+                    mathCheck.computedSubtotal * preset.rate,
+                    cur
+                  );
+                  const active =
+                    mathCheck.computedSubtotal > 0 &&
+                    bill.serviceCharge === preview &&
+                    preview > 0;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      disabled={mathCheck.computedSubtotal <= 0}
+                      onClick={() => applyServiceRate(preset.rate)}
+                      className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors disabled:opacity-40 ${
+                        active
+                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+                {bill.serviceCharge > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateBill((prev) => ({ ...prev, serviceCharge: 0 }))
+                    }
+                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-          </label>
-
-          <label className="block">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
-              Service Charge
-            </span>
             <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
@@ -367,8 +416,65 @@ export function ReviewStep({
                 className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
               />
             </div>
-          </label>
+          </div>
 
+          {/* Tax (PB1 / PPN) + Quick % Chips */}
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                Tax (PB1 / PPN)
+              </span>
+              <div className="flex items-center gap-1">
+                {TAX_PRESETS.map((preset) => {
+                  const base = mathCheck.computedSubtotal + bill.serviceCharge;
+                  const preview = roundForCurrency(base * preset.rate, cur);
+                  const active = base > 0 && bill.tax === preview && preview > 0;
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      disabled={base <= 0}
+                      onClick={() => applyTaxRate(preset.rate)}
+                      className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors disabled:opacity-40 ${
+                        active
+                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+                {bill.tax > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateBill((prev) => ({ ...prev, tax: 0 }))
+                    }
+                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                {currencyInfo.symbol}
+              </span>
+              <AmountInput
+                value={bill.tax}
+                currency={cur}
+                onChange={(nextTax) =>
+                  onUpdateBill((prev) => ({ ...prev, tax: nextTax }))
+                }
+                ariaLabel="Tax amount"
+                className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Discount / Promo */}
           <label className="block">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">
               Discount / Promo

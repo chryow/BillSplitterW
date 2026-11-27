@@ -6,14 +6,15 @@ import {
 } from "@/lib/config";
 import { extractReceiptWithGemini } from "@/lib/server/gemini-ocr";
 import {
-  consumeScanRateLimit,
-  extractClientIp,
-} from "@/lib/server/rate-limit";
-import {
   getCachedReceipt,
   hashImageBuffer,
   setCachedReceipt,
 } from "@/lib/server/receipt-cache";
+import {
+  consumeScanQuotaForUser,
+  getScanQuotaForUser,
+} from "@/lib/server/scan-quota";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ScanApiError } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -40,6 +41,34 @@ function hasValidImageMagicBytes(buffer: Buffer): boolean {
 }
 
 export async function POST(request: Request) {
+  // Require authenticated Supabase user so anonymous guests cannot abuse OCR quota
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return errorResponse(
+      {
+        code: "AUTH_REQUIRED",
+        message:
+          "Sign in with Google is required for receipt scanning. You can still use Manual Split or Try Sample Receipt anytime.",
+      },
+      401
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return errorResponse(
+      {
+        code: "AUTH_REQUIRED",
+        message:
+          "Sign in with Google to use AI receipt scanning. Guests can still use Manual Split or Try Sample Receipt.",
+      },
+      401
+    );
+  }
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     return errorResponse(
@@ -119,30 +148,39 @@ export async function POST(request: Request) {
     );
   }
 
-  // SHA-256 deduplication cache check (avoids duplicate Gemini calls on re-scans)
+  // SHA-256 deduplication cache check (avoids duplicate Gemini calls & preserves quota on re-scans)
   const imageHash = hashImageBuffer(buffer);
   const cached = getCachedReceipt(imageHash);
   if (cached) {
+    const quota = await getScanQuotaForUser(supabase, user.id, MAX_SCANS_PER_DAY);
     return NextResponse.json(cached, {
       status: 200,
-      headers: { "X-Receipt-Cache": "HIT" },
+      headers: {
+        "X-Receipt-Cache": "HIT",
+        "X-RateLimit-Remaining": String(quota.remaining),
+        "X-RateLimit-Limit": String(quota.limit),
+      },
     });
   }
 
-  // Daily per-IP rate limit
-  const clientIp = extractClientIp(request);
-  const rate = consumeScanRateLimit(clientIp, MAX_SCANS_PER_DAY);
-  if (!rate.allowed) {
+  // DB-backed strict daily per-user quota (with automatic in-memory fallback)
+  const quota = await consumeScanQuotaForUser(
+    supabase,
+    user.id,
+    MAX_SCANS_PER_DAY
+  );
+  if (!quota.allowed) {
     return errorResponse(
       {
         code: "RATE_LIMITED",
-        message: `You've reached the daily scan limit (${MAX_SCANS_PER_DAY} scans/day). No worries—you can still split your bill manually!`,
-        retryAfterSeconds: rate.retryAfterSeconds,
+        message: `You've used all ${quota.limit} scans for today. Your quota resets at midnight UTC—meanwhile you can still split manually!`,
+        retryAfterSeconds: quota.retryAfterSeconds,
       },
       429,
       {
-        "Retry-After": String(rate.retryAfterSeconds),
+        "Retry-After": String(quota.retryAfterSeconds),
         "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Limit": String(quota.limit),
       }
     );
   }
@@ -155,7 +193,8 @@ export async function POST(request: Request) {
       status: 200,
       headers: {
         "X-Receipt-Cache": "MISS",
-        "X-RateLimit-Remaining": String(rate.remaining),
+        "X-RateLimit-Remaining": String(quota.remaining),
+        "X-RateLimit-Limit": String(quota.limit),
       },
     });
   } catch (err) {
@@ -166,7 +205,11 @@ export async function POST(request: Request) {
         message:
           "We couldn't read that receipt automatically. You can continue straight into Manual Entry.",
       },
-      502
+      502,
+      {
+        "X-RateLimit-Remaining": String(quota.remaining),
+        "X-RateLimit-Limit": String(quota.limit),
+      }
     );
   }
 }

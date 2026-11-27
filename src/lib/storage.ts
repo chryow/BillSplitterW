@@ -32,12 +32,29 @@ export function loadActiveSession(): StoredSession | null {
     const validStep: AppStep =
       step === 1 || step === 2 || step === 3 || step === 4 ? step : 1;
     const safeCurrency = normalizeCurrencyCode(parsed.bill.currency, "IDR");
+    const participants = Array.isArray(parsed.bill.participants)
+      ? parsed.bill.participants
+      : [];
+    const validIds = new Set(participants.map((p) => p.id));
+    const rawPaidBy =
+      typeof parsed.bill.paidByParticipantId === "string" &&
+      validIds.has(parsed.bill.paidByParticipantId)
+        ? parsed.bill.paidByParticipantId
+        : participants[0]?.id ?? null;
+    const rawSettled = Array.isArray(parsed.bill.settledParticipantIds)
+      ? parsed.bill.settledParticipantIds.filter(
+          (id): id is string => typeof id === "string" && validIds.has(id)
+        )
+      : [];
+
     return {
       step: validStep,
       bill: {
         ...parsed.bill,
         currency: safeCurrency,
         feeSplitMode: "proportional",
+        paidByParticipantId: rawPaidBy,
+        settledParticipantIds: rawSettled,
       },
     };
   } catch {

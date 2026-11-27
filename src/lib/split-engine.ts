@@ -6,6 +6,7 @@ import type {
   Participant,
   PersonAssignedItem,
   PersonSplit,
+  SettlementSummary,
   SplitCalculationResult,
 } from "./types";
 
@@ -72,10 +73,22 @@ export function allocateLargestRemainder(
   return floors.map((v) => (v === 0 ? 0 : v * sign));
 }
 
+function getNormalizedShareWeight(
+  shares: Record<string, number> | undefined,
+  participantId: string
+): number {
+  const raw = shares?.[participantId];
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+    return Math.min(99, Math.round(raw));
+  }
+  return 1;
+}
+
 /**
  * Pure split calculation engine.
  * - Zero-decimal currencies (IDR, JPY) round to nearest integer.
  * - 2-decimal currencies (USD, SGD, MYR, EUR) round to 2 decimal places.
+ * - Supports equal and custom weighted per-person shares (`assigneeShares`).
  * - Largest-remainder rounding guarantees sum(people.total) === grandTotal whenever
  *   at least one participant exists and all items are assigned.
  */
@@ -122,20 +135,29 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
     }
 
     assignedSubtotalMinor += itemMinor;
-    const equalWeights = new Array<number>(uniqueValidAssignees.length).fill(1);
-    const sharesMinor = allocateLargestRemainder(itemMinor, equalWeights, itemIdx);
-    const exactUnitShare = itemMinor / uniqueValidAssignees.length;
+    const weights = uniqueValidAssignees.map((id) =>
+      getNormalizedShareWeight(item.assigneeShares, id)
+    );
+    const totalShares = weights.reduce((acc, w) => acc + w, 0);
+    const isCustomShare =
+      weights.length > 1 && weights.some((w) => w !== weights[0]);
+
+    const sharesMinor = allocateLargestRemainder(itemMinor, weights, itemIdx);
 
     uniqueValidAssignees.forEach((assigneeId, shareIdx) => {
       const pIdx = participantIndexById.get(assigneeId)!;
       const shareMinor = sharesMinor[shareIdx];
+      const weight = weights[shareIdx];
       personItemSubtotalMinor[pIdx] += shareMinor;
-      personExactItemWeight[pIdx] += exactUnitShare;
+      personExactItemWeight[pIdx] += (itemMinor * weight) / totalShares;
       perPersonItems[pIdx].push({
         itemId: item.id,
         name: item.name,
         qty: item.qty,
         shareCount: uniqueValidAssignees.length,
+        shareWeight: weight,
+        totalShares,
+        isCustomShare,
         amount: fromMinorUnits(shareMinor, currency),
       });
     });
@@ -221,7 +243,6 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
   const currentSumMinor = personTotalsMinor.reduce((acc, v) => acc + v, 0);
   const diffMinor = targetPeopleSumMinor - currentSumMinor;
   if (diffMinor !== 0 && n > 0) {
-    // Adjust the person with the largest positive total
     let bestIdx = 0;
     for (let i = 1; i < n; i++) {
       if (personTotalsMinor[i] > personTotalsMinor[bestIdx]) {
@@ -261,6 +282,54 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
 }
 
 /**
+ * Computes settlement progress across all participants relative to whoever paid the bill.
+ */
+export function computeSettlementSummary(
+  split: SplitCalculationResult,
+  paidByParticipantId: string | null,
+  settledParticipantIds: string[]
+): SettlementSummary {
+  const cur = split.currency;
+  const settledSet = new Set(settledParticipantIds);
+  const payer = paidByParticipantId
+    ? split.people.find((p) => p.participantId === paidByParticipantId) ?? null
+    : null;
+
+  let owedMinor = 0;
+  let collectedMinor = 0;
+  let collectibleCount = 0;
+  let settledCount = 0;
+
+  for (const person of split.people) {
+    if (payer && person.participantId === payer.participantId) {
+      continue;
+    }
+    const personMinor = Math.max(0, toMinorUnits(person.total, cur));
+    if (personMinor === 0) continue;
+
+    collectibleCount += 1;
+    owedMinor += personMinor;
+    if (settledSet.has(person.participantId)) {
+      settledCount += 1;
+      collectedMinor += personMinor;
+    }
+  }
+
+  const remainingMinor = Math.max(0, owedMinor - collectedMinor);
+
+  return {
+    payerId: payer?.participantId ?? null,
+    payerName: payer?.name ?? null,
+    totalOwedToPayer: fromMinorUnits(owedMinor, cur),
+    totalCollected: fromMinorUnits(collectedMinor, cur),
+    totalRemaining: fromMinorUnits(remainingMinor, cur),
+    collectibleCount,
+    settledCount,
+    unsettledCount: Math.max(0, collectibleCount - settledCount),
+  };
+}
+
+/**
  * Splits a single line item with qty > 1 into `qty` separate 1x rows while preserving
  * exact sum of prices (handles any rounding remainder cleanly on the last row).
  */
@@ -288,6 +357,7 @@ export function splitItemQuantity(
       unitPrice: unitVal,
       totalPrice: unitVal,
       assigneeIds: [...item.assigneeIds],
+      ...(item.assigneeShares ? { assigneeShares: { ...item.assigneeShares } } : {}),
     };
   });
 }

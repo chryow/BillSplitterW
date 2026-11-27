@@ -51,11 +51,17 @@ export default async function SharedBillPage({ params }: PageProps) {
       ? (row.payment_info as Record<string, unknown>)
       : {};
 
+  const rawSettled = Array.isArray(row.settled_participant_ids)
+    ? (row.settled_participant_ids as unknown[]).filter(
+        (v): v is string => typeof v === "string"
+      )
+    : [];
+
   const bill: SharedBillData = {
     share_slug: String(row.share_slug),
     merchant_name: String(row.merchant_name ?? ""),
     currency: normalizeCurrencyCode(row.currency, "IDR"),
-    fee_split_mode: row.fee_split_mode === "equal" ? "equal" : "proportional",
+    fee_split_mode: "proportional",
     tax: Number(row.tax ?? 0),
     service_charge: Number(row.service_charge ?? 0),
     discount: Number(row.discount ?? 0),
@@ -79,6 +85,11 @@ export default async function SharedBillPage({ params }: PageProps) {
           ? rawPayment.note
           : EMPTY_PAYMENT_INFO.note,
     },
+    paid_by_participant_id:
+      typeof row.paid_by_participant_id === "string"
+        ? row.paid_by_participant_id
+        : null,
+    settled_participant_ids: rawSettled,
     created_at: String(row.created_at),
   };
 
