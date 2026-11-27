@@ -18,16 +18,16 @@ export const RECEIPT_CACHE_MAX_ENTRIES = 200;
 export const RECEIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 export const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Curated participant badge accents (high contrast on both dark charcoal & light surfaces)
+// Curated stationery ink pigments (high contrast on unbleached paper & night ink)
 export const PARTICIPANT_COLORS = [
-  "#10B981", // Emerald
-  "#38BDF8", // Sky
-  "#F59E0B", // Amber
-  "#FB7185", // Rose
-  "#14B8A6", // Teal
-  "#FB923C", // Orange
-  "#60A5FA", // Blue
-  "#84CC16", // Lime
+  "#234E3D", // Fountain Pen Green
+  "#C83E2B", // Stamp Vermilion
+  "#2B4C7E", // Indigo Ink
+  "#8F5B14", // Ochre Sepia
+  "#6D3B5E", // Plum Ink
+  "#2A6B6E", // Slate Teal
+  "#8B4229", // Burnt Terracotta
+  "#4A4E69", // Graphite Blue
 ] as const;
 
 export const DEFAULT_QUICK_NAMES = ["You", "Budi", "Sari", "Dimas", "Nadia", "Raka"] as const;

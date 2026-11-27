@@ -9,9 +9,9 @@ import {
   ImageDown,
   Loader2,
   MessageCircle,
-  ReceiptText,
   Wallet,
 } from "lucide-react";
+import { ColophonFooter } from "@/components/layout/ColophonFooter";
 import { formatCurrency } from "@/lib/currency";
 import { shareOrDownloadSplitImage } from "@/lib/split-card-image";
 import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
@@ -141,36 +141,39 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--bg-app)] text-[var(--text-primary)]">
-      <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--bg-app)]/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-4">
+    <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-app)] text-[var(--text-primary)]">
+      <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)]">
+        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm font-semibold tracking-tight text-[var(--text-primary)]"
+            className="flex items-center gap-2 text-[var(--text-primary)]"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent-text)]">
-              <ReceiptText className="h-4 w-4" />
+            <span
+              aria-hidden="true"
+              className="inline-block h-2 w-2 shrink-0 bg-[var(--accent)]"
+            />
+            <span className="font-editorial text-[19px] font-semibold tracking-tight">
+              BillSplitterW
             </span>
-            BillSplitterW
           </Link>
 
           <Link
             href="/"
-            className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+            className="rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             Split a Bill
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-md space-y-4 px-4 pt-4 pb-28">
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+      <main className="mx-auto w-full max-w-lg flex-1 space-y-4 px-4 pt-4 pb-6">
+        <div className="rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-[var(--text-muted)]">
-                Shared Breakdown · {formattedDate}
+              <p className="micro-label text-[var(--text-muted)]">
+                Shared Breakdown &middot; {formattedDate}
               </p>
-              <h1 className="mt-0.5 truncate text-xl font-semibold tracking-tight">
+              <h1 className="font-editorial mt-0.5 truncate text-xl font-semibold tracking-tight">
                 {bill.merchant_name || "Split Bill"}
               </h1>
               {settlement.payerName && (
@@ -183,55 +186,57 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
               )}
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[11px] text-[var(--text-muted)]">Grand Total</p>
-              <p className="font-mono text-lg font-bold text-[var(--accent-text)] tabular-nums">
+              <p className="micro-label text-[var(--text-muted)]">
+                Grand Total
+              </p>
+              <p className="mt-0.5 font-mono text-lg font-bold text-[var(--accent-text)] tabular-nums">
                 {formatCurrency(split.grandTotal, cur)}
               </p>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-[11px] text-[var(--text-secondary)]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 font-mono text-[11px] text-[var(--text-secondary)]">
             <span>
-              Items:{" "}
-              <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+              ITEMS{" "}
+              <strong className="text-[var(--text-primary)] tabular-nums">
                 {formatCurrency(split.itemsSubtotal, cur)}
               </strong>
             </span>
             {split.tax > 0 && (
               <span>
-                Tax:{" "}
-                <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+                TAX{" "}
+                <strong className="text-[var(--text-primary)] tabular-nums">
                   {formatCurrency(split.tax, cur)}
                 </strong>
               </span>
             )}
             {split.serviceCharge > 0 && (
               <span>
-                Svc:{" "}
-                <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+                SVC{" "}
+                <strong className="text-[var(--text-primary)] tabular-nums">
                   {formatCurrency(split.serviceCharge, cur)}
                 </strong>
               </span>
             )}
             {split.deliveryFee > 0 && (
               <span>
-                Delivery:{" "}
-                <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+                DELIV{" "}
+                <strong className="text-[var(--text-primary)] tabular-nums">
                   {formatCurrency(split.deliveryFee, cur)}
                 </strong>
               </span>
             )}
             {split.discount > 0 && (
               <span>
-                Disc:{" "}
-                <strong className="font-mono text-[var(--accent-text)] tabular-nums">
+                DISC{" "}
+                <strong className="text-[var(--success-text)] tabular-nums">
                   -{formatCurrency(split.discount, cur)}
                 </strong>
               </span>
             )}
             {settlement.collectibleCount > 0 && (
-              <span className="ml-auto font-mono text-[var(--text-muted)] tabular-nums">
-                {settlement.settledCount}/{settlement.collectibleCount} paid
+              <span className="ml-auto text-[var(--text-muted)] tabular-nums">
+                {settlement.settledCount}/{settlement.collectibleCount} PAID
               </span>
             )}
           </div>
@@ -239,7 +244,7 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
 
         {/* Dedicated Payment Info Card with 1-tap Copy Account Number */}
         {hasPaymentInfo(bill.payment_info) && (
-          <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--bg-surface)] p-4">
+          <div className="card-letterpress rounded-[3px] border bg-[var(--bg-surface)] p-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
                 <Wallet className="h-4 w-4 text-[var(--accent-text)]" />
@@ -250,21 +255,21 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
                 </span>
               </div>
               {bill.payment_info.provider && (
-                <span className="rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-secondary)]">
+                <span className="rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)]">
                   {bill.payment_info.provider}
                 </span>
               )}
             </div>
 
             {bill.payment_info.accountNumber.trim() && (
-              <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2.5">
+              <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
                 <span className="min-w-0 truncate font-mono text-base font-bold tracking-wide text-[var(--text-primary)] select-all">
                   {bill.payment_info.accountNumber.trim()}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopyAccountNumber}
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] active:scale-[0.98]"
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-on-solid)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid-hover)]"
                 >
                   {copiedAccount ? (
                     <>
@@ -302,29 +307,29 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
             return (
               <article
                 key={person.participantId}
-                className={`rounded-2xl border p-3.5 ${
+                className={`rounded-[3px] border bg-[var(--bg-surface)] p-3.5 ${
                   isSettled
-                    ? "border-[var(--accent)]/35 bg-[var(--bg-surface)]/80"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+                    ? "border-[var(--success-border)] bg-[var(--bg-surface-2)]/40"
+                    : "border-[var(--border-subtle)]"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <span
-                      className="h-3 w-3 shrink-0 rounded-full"
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: person.color }}
                     />
                     <h2 className="truncate text-sm font-semibold">
                       {person.name}
                     </h2>
                     {isPayer && (
-                      <span className="shrink-0 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                      <span className="shrink-0 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--text-secondary)]">
                         Paid bill
                       </span>
                     )}
                     {isSettled && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-text)]">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-[2px] border border-[var(--success-border)] bg-[var(--success-soft)] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--success-text)]">
+                        <CheckCircle2 className="h-2.5 w-2.5" />
                         Paid
                       </span>
                     )}
@@ -341,21 +346,21 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
                 </div>
 
                 {person.items.length > 0 && (
-                  <ul className="mt-2.5 space-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs">
+                  <ul className="mt-2.5 divide-y divide-[var(--border-subtle)]/70 border-t border-[var(--border-subtle)] pt-1 text-xs">
                     {person.items.map((item, idx) => (
                       <li
                         key={`${item.itemId}-${idx}`}
-                        className="flex items-center justify-between gap-2 text-[var(--text-secondary)]"
+                        className="flex items-center justify-between gap-2 py-1.5 text-[var(--text-secondary)]"
                       >
                         <span className="min-w-0 truncate">
                           {item.qty > 1 ? `${item.qty}x ` : ""}
                           {item.name}
                           {item.isCustomShare ? (
-                            <span className="ml-1 rounded bg-[var(--accent-soft)] px-1 py-0.5 font-mono text-[10px] text-[var(--accent-text)]">
+                            <span className="ml-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-primary)]">
                               {item.shareWeight}/{item.totalShares}
                             </span>
                           ) : item.shareCount > 1 ? (
-                            <span className="ml-1 rounded bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+                            <span className="ml-1.5 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
                               ÷{item.shareCount}
                             </span>
                           ) : null}
@@ -372,24 +377,22 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
                   person.serviceShare > 0 ||
                   person.deliveryShare > 0 ||
                   person.discountShare > 0) && (
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2 font-mono text-[11px] text-[var(--text-muted)] tabular-nums">
                     {person.taxShare > 0 && (
-                      <span className="font-mono tabular-nums">
-                        Tax +{formatCurrency(person.taxShare, cur)}
-                      </span>
+                      <span>Tax +{formatCurrency(person.taxShare, cur)}</span>
                     )}
                     {person.serviceShare > 0 && (
-                      <span className="font-mono tabular-nums">
+                      <span>
                         Svc +{formatCurrency(person.serviceShare, cur)}
                       </span>
                     )}
                     {person.deliveryShare > 0 && (
-                      <span className="font-mono tabular-nums">
+                      <span>
                         Deliv +{formatCurrency(person.deliveryShare, cur)}
                       </span>
                     )}
                     {person.discountShare > 0 && (
-                      <span className="font-mono tabular-nums text-[var(--accent-text)]">
+                      <span className="text-[var(--success-text)]">
                         Disc -{formatCurrency(person.discountShare, cur)}
                       </span>
                     )}
@@ -401,12 +404,14 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/95 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-md items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <ColophonFooter withBottomBarOffset />
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-strong)] bg-[var(--bg-app)]">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={handleCopySummary}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
           >
             {copiedSummary ? (
               <>
@@ -427,7 +432,7 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
             onClick={handleSaveCardImage}
             title="Save or share PNG summary card"
             aria-label="Save PNG card"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)] disabled:opacity-50"
           >
             {exportingImage ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -440,7 +445,7 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
             type="button"
             onClick={handleOpenWhatsApp}
             aria-label="Share via WhatsApp"
-            className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-4 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+            className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[3px] border border-[var(--success)] bg-[var(--success-soft)] px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--success-text)] transition-colors duration-150 ease-out hover:bg-[var(--success)] hover:text-[#F7F5F0]"
           >
             <MessageCircle className="h-4 w-4" />
             <span>WhatsApp</span>

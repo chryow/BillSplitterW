@@ -122,7 +122,7 @@ export function AccountSheet({
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={user ? "Account & History" : "Guest Mode"}
+      title={user ? "Account & Ledger Archive" : "Guest Mode"}
       subtitle={
         user
           ? user.email ?? "Signed in with Google"
@@ -131,8 +131,8 @@ export function AccountSheet({
     >
       {!supabaseEnabled ? (
         <div className="space-y-3">
-          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-4">
-            <p className="text-sm font-medium text-[var(--text-primary)]">
+          <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+            <p className="font-editorial text-base font-semibold text-[var(--text-primary)]">
               Running in Local Guest Mode
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-secondary)]">
@@ -145,20 +145,20 @@ export function AccountSheet({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] w-full rounded-xl bg-[var(--bg-hover)] px-4 text-sm font-medium text-[var(--text-primary)] transition-colors hover:opacity-90"
+            className="min-h-[42px] w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             Continue in Guest Mode
           </button>
         </div>
       ) : !user ? (
         <div className="space-y-4">
-          <div className="space-y-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-3.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+            <p className="micro-label text-[var(--text-muted)]">
               Unlock with Google Sign-In
             </p>
-            <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
-              <li className="flex items-center gap-2.5">
-                <Camera className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+            <ul className="mt-3 divide-y divide-[var(--border-subtle)] text-xs text-[var(--text-secondary)]">
+              <li className="flex items-start gap-2.5 py-2 first:pt-0">
+                <Camera className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-text)]" />
                 <span>
                   <strong className="text-[var(--text-primary)]">
                     AI Receipt Scanning
@@ -166,8 +166,8 @@ export function AccountSheet({
                   — snap a receipt to auto-fill items, tax &amp; promos
                 </span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Clock className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+              <li className="flex items-start gap-2.5 py-2">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                 <span>
                   <strong className="text-[var(--text-primary)]">
                     Saved Split History
@@ -175,8 +175,8 @@ export function AccountSheet({
                   — view &amp; re-copy past bills from any device
                 </span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Wallet className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+              <li className="flex items-start gap-2.5 py-2">
+                <Wallet className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                 <span>
                   <strong className="text-[var(--text-primary)]">
                     Synced Payment Info
@@ -184,23 +184,24 @@ export function AccountSheet({
                   — bank or e-wallet details auto-fill everywhere
                 </span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Users className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+              <li className="flex items-start gap-2.5 py-2">
+                <Users className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                 <span>
                   <strong className="text-[var(--text-primary)]">
                     Frequent Friends
                   </strong>{" "}
-                  — 1-tap quick-pick chips for your regular group
+                  — 1-tap quick-pick tags for your regular group
                 </span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Globe className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+              <li className="flex items-start gap-2.5 py-2 last:pb-0">
+                <Globe className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                 <span>
                   <strong className="text-[var(--text-primary)]">
                     Shareable Bill Links
                   </strong>{" "}
                   — clean read-only{" "}
-                  <code className="font-mono">/bill/...</code> link for friends
+                  <code className="font-mono text-[11px]">/bill/...</code> link
+                  for friends
                 </span>
               </li>
             </ul>
@@ -210,7 +211,7 @@ export function AccountSheet({
             type="button"
             disabled={authLoading}
             onClick={onSignInGoogle}
-            className="flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-60"
+            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-60"
           >
             <UserCheck className="h-4 w-4" />
             <span>
@@ -221,24 +222,24 @@ export function AccountSheet({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[40px] w-full rounded-xl text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            className="min-h-[38px] w-full rounded-[3px] font-mono text-[11px] uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:text-[var(--text-primary)]"
           >
             Keep using Guest Mode (no login required)
           </button>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3.5 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3.5 py-2.5">
             <div className="flex min-w-0 items-center gap-2.5">
               {user.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={user.avatarUrl}
                   alt={user.displayName}
-                  className="h-8 w-8 rounded-full border border-[var(--border-strong)] object-cover"
+                  className="h-8 w-8 rounded-[2px] border border-[var(--border-strong)] object-cover"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent-text)]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] font-mono text-xs font-bold text-[var(--text-primary)]">
                   {user.displayName.slice(0, 1).toUpperCase()}
                 </div>
               )}
@@ -246,7 +247,7 @@ export function AccountSheet({
                 <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
                   {user.displayName}
                 </p>
-                <p className="truncate text-[11px] text-[var(--text-muted)]">
+                <p className="micro-label mt-0.5 text-[var(--success-text)]">
                   Synced across devices
                 </p>
               </div>
@@ -254,44 +255,41 @@ export function AccountSheet({
             <button
               type="button"
               onClick={onSignOut}
-              className="flex min-h-[36px] items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] px-2.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+              className="flex min-h-[32px] items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-3 w-3" />
               Sign out
             </button>
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <h3 className="micro-label text-[var(--text-muted)]">
                 Saved Split History ({bills.length})
               </h3>
             </div>
 
             {billsLoading ? (
-              <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-6 text-center text-xs text-[var(--text-secondary)]">
+              <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 text-center font-mono text-xs text-[var(--text-secondary)]">
                 Loading your saved splits...
               </div>
             ) : bills.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-6 text-center">
-                <Receipt className="mx-auto h-6 w-6 text-[var(--text-muted)]" />
-                <p className="mt-2 text-xs font-medium text-[var(--text-secondary)]">
+              <div className="rounded-[3px] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 text-center">
+                <Receipt className="mx-auto h-5 w-5 text-[var(--text-muted)]" />
+                <p className="mt-2 font-editorial text-sm font-semibold text-[var(--text-primary)]">
                   No saved bills yet
                 </p>
-                <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">
                   Tap &ldquo;Save&rdquo; on Step 4 to keep a bill and generate a
                   shareable link.
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y divide-[var(--border-subtle)] rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
                 {enrichedBills.map((entry) => {
                   const { bill, settlement, dateLabel } = entry;
                   return (
-                    <div
-                      key={bill.id}
-                      className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-3"
-                    >
+                    <div key={bill.id} className="p-3">
                       <div className="flex items-start justify-between gap-2">
                         <button
                           type="button"
@@ -304,21 +302,21 @@ export function AccountSheet({
                           <p className="truncate text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent-text)]">
                             {bill.merchant_name || "Split Bill"}
                           </p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)]">
                             <span>
-                              {dateLabel} · {bill.participants.length} people ·{" "}
-                              {bill.items.length} items
+                              {dateLabel} &middot; {bill.participants.length}{" "}
+                              people &middot; {bill.items.length} items
                             </span>
                             {settlement.collectibleCount > 0 && (
                               <span
-                                className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                                className={`rounded-[2px] border px-1.5 py-0.5 text-[9px] font-semibold ${
                                   settlement.unsettledCount === 0
-                                    ? "bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                                    : "bg-[var(--bg-surface)] text-[var(--text-secondary)]"
+                                    ? "border-[var(--success-border)] bg-[var(--success-soft)] text-[var(--success-text)]"
+                                    : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]"
                                 }`}
                               >
                                 {settlement.unsettledCount === 0
-                                  ? "All settled ✓"
+                                  ? "All settled"
                                   : `${settlement.settledCount}/${settlement.collectibleCount} paid`}
                               </span>
                             )}
@@ -333,10 +331,10 @@ export function AccountSheet({
                         <button
                           type="button"
                           onClick={() => handleCopyWhatsApp(entry)}
-                          className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+                          className="inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)]"
                         >
                           {copiedId === `wa-${bill.id}` ? (
-                            <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                            <Check className="h-3 w-3 text-[var(--success-text)]" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -347,10 +345,10 @@ export function AccountSheet({
                           <button
                             type="button"
                             onClick={() => handleCopyLink(bill)}
-                            className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+                            className="inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)]"
                           >
                             {copiedId === `link-${bill.id}` ? (
-                              <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                              <Check className="h-3 w-3 text-[var(--success-text)]" />
                             ) : (
                               <ExternalLink className="h-3 w-3" />
                             )}
@@ -365,7 +363,7 @@ export function AccountSheet({
                             onClose();
                           }}
                           title="Reuse merchant & group for a new split"
-                          className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          className="inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] font-medium uppercase tracking-[0.05em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                         >
                           <CopyPlus className="h-3 w-3" />
                           Reuse
@@ -381,11 +379,11 @@ export function AccountSheet({
                               ? "Public link active — click to make private"
                               : "Private — click to enable public link"
                           }
-                          className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2 text-[11px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+                          className="inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] uppercase tracking-[0.05em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)]"
                         >
                           {bill.is_public ? (
                             <>
-                              <Globe className="h-3 w-3 text-[var(--accent-text)]" />
+                              <Globe className="h-3 w-3 text-[var(--success-text)]" />
                               Public
                             </>
                           ) : (
@@ -400,7 +398,7 @@ export function AccountSheet({
                           type="button"
                           onClick={() => onDeleteBill(bill.id)}
                           aria-label="Delete saved bill"
-                          className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
+                          className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-[2px] text-[var(--text-muted)] transition-colors duration-150 ease-out hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

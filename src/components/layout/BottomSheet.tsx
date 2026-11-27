@@ -42,23 +42,18 @@ export function BottomSheet({
       aria-label={title}
     >
       <div
-        className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-[var(--backdrop-veil)]"
         onClick={onClose}
       />
 
-      <div className="relative z-10 flex max-h-[88dvh] w-full max-w-md flex-col rounded-t-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xl sm:rounded-2xl animate-sheet-up">
-        {/* Mobile grab bar */}
-        <div className="flex justify-center pt-2.5 pb-1 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-[var(--border-strong)]" />
-        </div>
-
-        <div className="flex items-start justify-between gap-3 border-b border-[var(--border-subtle)] px-4 py-3">
+      <div className="relative z-10 flex max-h-[88dvh] w-full max-w-lg flex-col rounded-t-[4px] border border-[var(--border-strong)] bg-[var(--bg-app)] sm:rounded-[4px] animate-sheet-up">
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-4 py-3.5">
           <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold tracking-tight text-[var(--text-primary)]">
+            <h2 className="font-editorial truncate text-lg font-semibold tracking-tight text-[var(--text-primary)]">
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+              <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-secondary)]">
                 {subtitle}
               </p>
             )}
@@ -67,7 +62,7 @@ export function BottomSheet({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             <X className="h-4 w-4" />
           </button>

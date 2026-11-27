@@ -172,12 +172,12 @@ export function ReviewStep({
   ).length;
 
   return (
-    <section className="space-y-4 pt-3 pb-28">
+    <section className="space-y-4 pt-4 pb-6">
       {/* Merchant + Currency Header Card */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
-        <div className="flex items-end gap-2.5">
+      <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
+        <div className="flex items-end gap-2">
           <label className="min-w-0 flex-1">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="micro-label block text-[var(--text-muted)]">
               Place / Merchant
             </span>
             <input
@@ -190,13 +190,13 @@ export function ReviewStep({
                 }))
               }
               placeholder="e.g. Kopi & Kitchen"
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-1.5 h-10 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
             />
           </label>
           <button
             type="button"
             onClick={onOpenCurrency}
-            className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 font-mono text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+            className="flex h-10 shrink-0 items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 font-mono text-xs font-semibold text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--bg-hover)]"
           >
             <span>{currencyInfo.flag}</span>
             <span>{cur}</span>
@@ -263,122 +263,121 @@ export function ReviewStep({
         />
       )}
 
-      {/* Editable Line Items */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-0.5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Items ({bill.items.length})
+      {/* Printed Receipt Line Items Ledger */}
+      <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3.5 py-2.5">
+          <h2 className="micro-label font-semibold text-[var(--text-primary)]">
+            Line Items ({bill.items.length})
           </h2>
           <button
             type="button"
             onClick={handleAddItem}
-            className="inline-flex min-h-[32px] items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2.5 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+            className="inline-flex h-7 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-3 w-3" />
             Add Item
           </button>
         </div>
 
-        <div className="space-y-2">
-          {bill.items.map((item, idx) => (
-            <div
-              key={item.id}
-              className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3"
-            >
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={item.name}
-                  onChange={(e) =>
-                    updateItem(item.id, { name: e.target.value })
-                  }
-                  placeholder={`Item ${idx + 1} name`}
-                  aria-label={`Item ${idx + 1} name`}
-                  className="h-10 min-w-0 flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteItem(item.id)}
-                  aria-label={`Delete ${item.name || "item"}`}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-2 flex items-center gap-2">
-                <label className="flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
-                  <span className="text-[11px] font-medium text-[var(--text-muted)]">
-                    Qty
-                  </span>
+        {bill.items.length > 0 ? (
+          <div className="divide-y divide-[var(--border-subtle)]">
+            {bill.items.map((item, idx) => (
+              <div key={item.id} className="p-3">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
-                    inputMode="numeric"
-                    value={qtyDrafts[item.id] ?? String(item.qty)}
-                    onChange={(e) => handleQtyChange(item, e.target.value)}
-                    onBlur={() => handleQtyBlur(item)}
-                    aria-label="Quantity"
-                    className="w-8 bg-transparent text-center font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                    value={item.name}
+                    onChange={(e) =>
+                      updateItem(item.id, { name: e.target.value })
+                    }
+                    placeholder={`Item ${idx + 1} name`}
+                    aria-label={`Item ${idx + 1} name`}
+                    className="h-9 min-w-0 flex-1 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
                   />
-                </label>
-
-                <label className="flex h-10 min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
-                  <span className="font-mono text-xs text-[var(--text-muted)]">
-                    {currencyInfo.symbol}
-                  </span>
-                  <AmountInput
-                    value={item.totalPrice}
-                    currency={cur}
-                    onChange={(nextVal) => handlePriceChange(item, nextVal)}
-                    ariaLabel="Line total price"
-                    className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums placeholder:text-[var(--text-muted)] focus:outline-none"
-                  />
-                </label>
-
-                {item.qty > 1 && (
                   <button
                     type="button"
-                    onClick={() => handleSplitQty(item)}
-                    title={`Split ${item.qty}x into ${item.qty} separate 1x items`}
-                    className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-2.5 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+                    onClick={() => handleDeleteItem(item.id)}
+                    aria-label={`Delete ${item.name || "item"}`}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] border border-transparent text-[var(--text-muted)] transition-colors duration-150 ease-out hover:border-[var(--danger-border)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
                   >
-                    <Scissors className="h-3.5 w-3.5" />
-                    Split Qty
+                    <Trash2 className="h-4 w-4" />
                   </button>
-                )}
-              </div>
-            </div>
-          ))}
+                </div>
 
-          {bill.items.length === 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <label className="flex h-9 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
+                    <span className="micro-label text-[var(--text-muted)]">
+                      Qty
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={qtyDrafts[item.id] ?? String(item.qty)}
+                      onChange={(e) => handleQtyChange(item, e.target.value)}
+                      onBlur={() => handleQtyBlur(item)}
+                      aria-label="Quantity"
+                      className="w-7 bg-transparent text-center font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
+                    <span className="font-mono text-xs text-[var(--text-muted)]">
+                      {currencyInfo.symbol}
+                    </span>
+                    <AmountInput
+                      value={item.totalPrice}
+                      currency={cur}
+                      onChange={(nextVal) => handlePriceChange(item, nextVal)}
+                      ariaLabel="Line total price"
+                      className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums placeholder:text-[var(--text-muted)] focus:outline-none"
+                    />
+                  </label>
+
+                  {item.qty > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleSplitQty(item)}
+                      title={`Split ${item.qty}x into ${item.qty} separate 1x items`}
+                      className="inline-flex h-9 shrink-0 items-center gap-1 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
+                    >
+                      <Scissors className="h-3 w-3" />
+                      Split
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4">
             <button
               type="button"
               onClick={handleAddItem}
-              className="flex min-h-[64px] w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-strong)] text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface)]"
+              className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[3px] border border-dashed border-[var(--border-subtle)] font-mono text-xs font-medium uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
             >
               <Plus className="h-4 w-4" />
               Add your first item
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Tax, Service Charge & Discount with Quick % Preset Chips */}
-      <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+      {/* Tax, Service Charge, Delivery Fee & Discount Ledger */}
+      <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3.5 py-2.5">
+          <h2 className="micro-label font-semibold text-[var(--text-primary)]">
             Fees &amp; Discounts
           </h2>
-          <span className="text-[11px] text-[var(--text-muted)]">
-            Tax/Svc proportional · Delivery equal
+          <span className="micro-label text-[var(--text-muted)]">
+            Tax/Svc prop. &middot; Deliv equal
           </span>
         </div>
 
-        <div className="space-y-3">
+        <div className="divide-y divide-[var(--border-subtle)]">
           {/* Service Charge + Quick % Chips */}
-          <div>
+          <div className="p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 Service Charge
               </span>
               <div className="flex items-center gap-1">
@@ -397,10 +396,10 @@ export function ReviewStep({
                       type="button"
                       disabled={mathCheck.computedSubtotal <= 0}
                       onClick={() => applyServiceRate(preset.rate)}
-                      className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors disabled:opacity-40 ${
+                      className={`rounded-[2px] border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors duration-150 ease-out disabled:opacity-40 ${
                         active
-                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       {preset.label}
@@ -413,14 +412,14 @@ export function ReviewStep({
                     onClick={() =>
                       onUpdateBill((prev) => ({ ...prev, serviceCharge: 0 }))
                     }
-                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className="px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
                   >
                     Clear
                   </button>
                 )}
               </div>
             </div>
-            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
+            <div className="mt-1.5 flex h-9 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
               </span>
@@ -440,17 +439,17 @@ export function ReviewStep({
           </div>
 
           {/* Delivery Fee (Ongkir / App / Packaging) */}
-          <div>
+          <div className="p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 Delivery Fee{" "}
                 <span className="font-normal text-[var(--text-muted)]">
                   (Ongkir / App)
                 </span>
               </span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-[var(--text-muted)]">
-                  Split equally among orderers
+                <span className="micro-label text-[var(--text-muted)]">
+                  Split equally
                 </span>
                 {bill.deliveryFee > 0 && (
                   <button
@@ -458,14 +457,14 @@ export function ReviewStep({
                     onClick={() =>
                       onUpdateBill((prev) => ({ ...prev, deliveryFee: 0 }))
                     }
-                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className="px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
                   >
                     Clear
                   </button>
                 )}
               </div>
             </div>
-            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
+            <div className="mt-1.5 flex h-9 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
               </span>
@@ -485,9 +484,9 @@ export function ReviewStep({
           </div>
 
           {/* Tax (PB1 / PPN) + Quick % Chips */}
-          <div>
+          <div className="p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+              <span className="text-xs font-medium text-[var(--text-primary)]">
                 Tax (PB1 / PPN)
               </span>
               <div className="flex items-center gap-1">
@@ -501,10 +500,10 @@ export function ReviewStep({
                       type="button"
                       disabled={base <= 0}
                       onClick={() => applyTaxRate(preset.rate)}
-                      className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors disabled:opacity-40 ${
+                      className={`rounded-[2px] border px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors duration-150 ease-out disabled:opacity-40 ${
                         active
-                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       {preset.label}
@@ -517,14 +516,14 @@ export function ReviewStep({
                     onClick={() =>
                       onUpdateBill((prev) => ({ ...prev, tax: 0 }))
                     }
-                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    className="px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
                   >
                     Clear
                   </button>
                 )}
               </div>
             </div>
-            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
+            <div className="mt-1.5 flex h-9 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
               </span>
@@ -541,12 +540,12 @@ export function ReviewStep({
           </div>
 
           {/* Discount / Promo */}
-          <label className="block">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+          <label className="block p-3.5">
+            <span className="text-xs font-medium text-[var(--text-primary)]">
               Discount / Promo
             </span>
-            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
-              <span className="font-mono text-xs text-[var(--accent-text)]">
+            <div className="mt-1.5 flex h-9 items-center gap-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 focus-within:border-[var(--border-strong)]">
+              <span className="shrink-0 whitespace-nowrap font-mono text-xs font-semibold text-[var(--success-text)]">
                 -{currencyInfo.symbol}
               </span>
               <AmountInput
@@ -556,22 +555,25 @@ export function ReviewStep({
                   onUpdateBill((prev) => ({ ...prev, discount: nextDiscount }))
                 }
                 ariaLabel="Discount amount"
-                className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--accent-text)] tabular-nums focus:outline-none"
+                className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--success-text)] tabular-nums focus:outline-none"
               />
             </div>
           </label>
         </div>
 
-        <div className="space-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs">
-          <div className="flex items-center justify-between text-[var(--text-secondary)]">
-            <span>Items Subtotal</span>
-            <span className="font-mono tabular-nums">
+        {/* Printed Ledger Totals Footer */}
+        <div className="space-y-1.5 border-t border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3.5 py-3">
+          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+            <span className="micro-label">Items Subtotal</span>
+            <span className="font-mono tabular-nums text-[var(--text-primary)]">
               {formatCurrency(mathCheck.computedSubtotal, cur)}
             </span>
           </div>
-          <div className="flex items-center justify-between text-sm font-semibold text-[var(--text-primary)]">
-            <span>Grand Total</span>
-            <span className="font-mono tabular-nums">
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="micro-label font-semibold text-[var(--text-primary)]">
+              Grand Total
+            </span>
+            <span className="font-mono text-base font-bold text-[var(--accent-text)] tabular-nums">
               {formatCurrency(mathCheck.computedGrandTotal, cur)}
             </span>
           </div>
@@ -579,13 +581,13 @@ export function ReviewStep({
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/95 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-md items-center gap-2.5 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-strong)] bg-[var(--bg-app)]">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onBack}
             aria-label="Back to Start"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -594,10 +596,12 @@ export function ReviewStep({
             type="button"
             disabled={validItemsCount === 0}
             onClick={onNext}
-            className="flex h-12 flex-1 items-center justify-between rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-45"
+            className="flex h-11 flex-1 items-center justify-between rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 text-sm font-semibold text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-45"
           >
-            <span>Assign People</span>
-            <span className="flex items-center gap-1.5 font-mono text-xs tabular-nums">
+            <span className="font-mono text-xs uppercase tracking-[0.06em]">
+              Assign People
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-xs font-bold tabular-nums">
               {formatCurrency(mathCheck.computedGrandTotal, cur)}
               <ArrowRight className="h-4 w-4" />
             </span>

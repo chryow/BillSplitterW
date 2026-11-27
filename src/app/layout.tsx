@@ -1,27 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "BillSplitterW — Fast Mobile Receipt Split",
+  title: "BillSplitterW — Editorial Receipt & Trip Ledger",
   description:
     "Scan any receipt, assign dishes with a tap, and copy a neat WhatsApp breakdown in seconds. Works in Guest Mode or sign in with Google to save history.",
   manifest: "/manifest.json",
   applicationName: "BillSplitterW",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "BillSplitterW",
   },
   icons: {
@@ -39,20 +50,20 @@ export const viewport: Viewport = {
   maximumScale: 5,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0A0D12" },
-    { media: "(prefers-color-scheme: light)", color: "#F3F5F8" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F5F0" },
+    { media: "(prefers-color-scheme: dark)", color: "#161513" },
   ],
 };
 
-// Inline script runs before paint to avoid dark->light flash when user toggled light mode
+// Inline script runs before paint to restore saved E-Ink Paper (default) or E-Ink Night theme without flash
 const themeBootstrapScript = `
 (function() {
   try {
-    var saved = localStorage.getItem('billsplitterw:theme:v1');
-    var theme = saved === 'light' ? 'light' : 'dark';
+    var saved = localStorage.getItem('billsplitterw:theme:v2');
+    var theme = saved === 'dark' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();
 `;
@@ -65,9 +76,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="dark"
+      data-theme="light"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${newsreader.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
