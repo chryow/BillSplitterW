@@ -1,5 +1,5 @@
 import { normalizeCurrencyCode } from "./currency";
-import type { AppStep, BillState, PaymentInfo } from "./types";
+import type { AppStep, BillState, PaymentInfo, Trip } from "./types";
 
 const ACTIVE_BILL_KEY = "billsplitterw:active-bill:v1";
 const PAYMENT_INFO_KEY = "billsplitterw:payment-info:v1";
@@ -125,5 +125,39 @@ export function saveTheme(theme: ThemeMode): void {
     window.localStorage.setItem(THEME_KEY, theme);
   } catch {
     // Ignore
+  }
+}
+
+const LOCAL_TRIPS_KEY = "billsplitterw:trips:v1";
+
+export function loadLocalTrips(): Trip[] {
+  if (!isBrowser()) return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_TRIPS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((t): t is Trip => Boolean(t && typeof t === "object" && t.id && t.name))
+      .map((t) => ({
+        ...t,
+        currency: normalizeCurrencyCode(t.currency, "IDR"),
+        members: Array.isArray(t.members) ? t.members : [],
+        expenses: Array.isArray(t.expenses) ? t.expenses : [],
+        settledTransferKeys: Array.isArray(t.settledTransferKeys)
+          ? t.settledTransferKeys
+          : [],
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalTrips(trips: Trip[]): void {
+  if (!isBrowser()) return;
+  try {
+    window.localStorage.setItem(LOCAL_TRIPS_KEY, JSON.stringify(trips));
+  } catch {
+    // Ignore storage quota errors
   }
 }

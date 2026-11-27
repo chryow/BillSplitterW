@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Circle,
   CloudCheck,
+  Compass,
   Copy,
   Globe,
   ImageDown,
@@ -44,6 +45,8 @@ interface SummaryStepProps {
   isSignedIn: boolean;
   supabaseEnabled: boolean;
   savingBill: boolean;
+  availableTrips?: { id: string; name: string }[];
+  onAddBillToTrip?: (tripId: string) => void;
   onPaymentInfoChange: (next: PaymentInfo) => void;
   onChangePaidBy: (participantId: string) => void;
   onToggleSettled: (participantId: string) => void;
@@ -59,6 +62,8 @@ export function SummaryStep({
   isSignedIn,
   supabaseEnabled,
   savingBill,
+  availableTrips = [],
+  onAddBillToTrip,
   onPaymentInfoChange,
   onChangePaidBy,
   onToggleSettled,
@@ -750,6 +755,28 @@ export function SummaryStep({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Optional Send Bill into an existing Trip */}
+      {availableTrips.length > 0 && onAddBillToTrip && (
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
+            <Compass className="h-4 w-4 text-[var(--accent-text)]" />
+            <span>Add this itemized bill to a Trip</span>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {availableTrips.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onAddBillToTrip(t.id)}
+                className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50 hover:text-[var(--accent-text)]"
+              >
+                + {t.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
