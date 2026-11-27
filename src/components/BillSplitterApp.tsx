@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Compass, ReceiptText } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { StepIndicator } from "@/components/layout/StepIndicator";
 import { AssignStep } from "@/components/steps/AssignStep";
@@ -14,15 +15,18 @@ import {
   createEmptyBillState,
   createSampleReceiptState,
 } from "@/lib/sample-receipt";
+import { createNewTrip, createSampleTrip } from "@/lib/sample-trip";
 import { checkReceiptMath } from "@/lib/split-engine";
 import {
   clearActiveSession,
   EMPTY_PAYMENT_INFO,
   loadActiveSession,
   loadLocalPaymentInfo,
+  loadLocalTrips,
   loadTheme,
   saveActiveSession,
   saveLocalPaymentInfo,
+  saveLocalTrips,
   saveTheme,
   type ThemeMode,
 } from "@/lib/storage";
@@ -40,7 +44,14 @@ import {
 } from "@/lib/supabase/bills";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import {
+  deleteSavedTrip,
+  fetchUserTrips,
+  saveTripToAccount,
+  updateTripPublicVisibility,
+} from "@/lib/supabase/trips";
 import type {
+  AppMode,
   AppStep,
   BillState,
   CurrencyCode,
@@ -49,16 +60,23 @@ import type {
   SavedFriend,
   ScannedReceiptResponse,
   ScanQuota,
+  Trip,
+  TripExpense,
+  TripMember,
 } from "@/lib/types";
 import { hasPaymentInfo } from "@/lib/whatsapp-formatter";
 
-// Lazy-load secondary sheets so initial mobile hydration stays fast & lean
+// Lazy-load secondary sheets and Trips view so initial Single Bill mobile hydration stays ultra-fast
 const CurrencySheet = dynamic(
   () => import("@/components/ui/CurrencySheet").then((m) => m.CurrencySheet),
   { ssr: false }
 );
 const AccountSheet = dynamic(
   () => import("@/components/ui/AccountSheet").then((m) => m.AccountSheet),
+  { ssr: false }
+);
+const TripsView = dynamic(
+  () => import("@/components/trips/TripsView").then((m) => m.TripsView),
   { ssr: false }
 );
 
@@ -80,12 +98,18 @@ export function BillSplitterApp() {
   const supabaseEnabled = isSupabaseConfigured();
 
   const [hydrated, setHydrated] = useState(false);
+  const [mode, setMode] = useState<AppMode>("bill");
   const [step, setStep] = useState<AppStep>(1);
   const [bill, setBill] = useState<BillState>(() => createEmptyBillState("IDR"));
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
     ...EMPTY_PAYMENT_INFO,
   });
   const [theme, setTheme] = useState<ThemeMode>("dark");
+
+  // Trips state (works in both Guest Mode localStorage and Supabase Login Mode)
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const [savingTrip, setSavingTrip] = useState(false);
 
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -101,6 +125,9 @@ export function BillSplitterApp() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const paymentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tripSyncTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {}
+  );
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback(
@@ -123,7 +150,7 @@ export function BillSplitterApp() {
     []
   );
 
-  // Hydrate persisted bill, payment info, and theme from localStorage after mount
+  // Hydrate persisted bill, trips, payment info, and theme from localStorage after mount
   useEffect(() => {
     let active = true;
     const savedTheme = loadTheme();
@@ -133,6 +160,7 @@ export function BillSplitterApp() {
       if (!active) return;
       setTheme(savedTheme);
       setPaymentInfo(loadLocalPaymentInfo());
+      setTrips(loadLocalTrips());
 
       const stored = loadActiveSession();
       if (stored) {
@@ -153,6 +181,12 @@ export function BillSplitterApp() {
     if (!hydrated) return;
     saveActiveSession({ step, bill });
   }, [hydrated, step, bill]);
+
+  // Auto-save trips to localStorage whenever trips change
+  useEffect(() => {
+    if (!hydrated) return;
+    saveLocalTrips(trips);
+  }, [hydrated, trips]);
 
   const fetchScanQuota = useCallback(async () => {
     try {
@@ -185,7 +219,7 @@ export function BillSplitterApp() {
     }
   }, []);
 
-  // Load Supabase user session & cloud profile/history/friends/quota
+  // Load Supabase user session & cloud profile/history/friends/trips/quota
   const hydrateCloudAccount = useCallback(
     async (userId: string) => {
       const supabase = getSupabaseBrowserClient();
@@ -193,21 +227,32 @@ export function BillSplitterApp() {
 
       setBillsLoading(true);
       try {
-        const [profile, friends, bills] = await Promise.all([
+        const [profile, friends, bills, cloudTrips] = await Promise.all([
           fetchUserProfile(supabase, userId),
           fetchSavedFriends(supabase, userId),
           fetchUserBills(supabase, userId),
+          fetchUserTrips(supabase, userId),
         ]);
 
         setSavedFriends(friends);
         setSavedBills(bills);
         void fetchScanQuota();
 
+        // Merge cloud trips with any unsaved local guest trips
+        if (cloudTrips.length > 0) {
+          setTrips((local) => {
+            const cloudIds = new Set(cloudTrips.map((t) => t.savedTripId));
+            const unsavedLocals = local.filter(
+              (t) => !t.savedTripId || !cloudIds.has(t.savedTripId)
+            );
+            return [...cloudTrips, ...unsavedLocals];
+          });
+        }
+
         if (profile && hasPaymentInfo(profile.payment_info)) {
           setPaymentInfo(profile.payment_info);
           saveLocalPaymentInfo(profile.payment_info);
         } else {
-          // If user already had local payment info before signing in, sync it up
           const localInfo = loadLocalPaymentInfo();
           if (hasPaymentInfo(localInfo)) {
             await upsertUserPaymentInfo(supabase, userId, localInfo);
@@ -282,6 +327,27 @@ export function BillSplitterApp() {
     return user.displayName.split(" ")[0] || "You";
   }, [user]);
 
+  const activeTrip = useMemo(
+    () => trips.find((t) => t.id === activeTripId) ?? null,
+    [trips, activeTripId]
+  );
+
+  const scheduleCloudTripSync = useCallback(
+    (nextTrip: Trip) => {
+      if (!user || !nextTrip.savedTripId) return;
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+
+      const existing = tripSyncTimersRef.current[nextTrip.id];
+      if (existing) clearTimeout(existing);
+
+      tripSyncTimersRef.current[nextTrip.id] = setTimeout(() => {
+        void saveTripToAccount(supabase, user.id, nextTrip);
+      }, 700);
+    },
+    [user]
+  );
+
   const handleToggleTheme = () => {
     const next: ThemeMode = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -290,6 +356,15 @@ export function BillSplitterApp() {
   };
 
   const handleCurrencyChange = (nextCurrency: CurrencyCode) => {
+    if (mode === "trips" && activeTripId) {
+      handleUpdateTrip(activeTripId, (prev) => ({
+        ...prev,
+        currency: nextCurrency,
+        updatedAt: new Date().toISOString(),
+      }));
+      return;
+    }
+
     setBill((prev) => ({
       ...prev,
       currency: nextCurrency,
@@ -335,21 +410,18 @@ export function BillSplitterApp() {
       items: prev.items.filter((item) => item.id !== itemId),
     }));
 
-    showToast(
-      `Removed ${removedItem.name.trim() || "item"}`,
-      {
-        undoLabel: "Undo",
-        onUndo: () => {
-          setBill((prev) => {
-            if (prev.items.some((i) => i.id === removedItem.id)) return prev;
-            const nextItems = [...prev.items];
-            nextItems.splice(Math.min(idx, nextItems.length), 0, removedItem);
-            return { ...prev, items: nextItems };
-          });
-          setToast(null);
-        },
-      }
-    );
+    showToast(`Removed ${removedItem.name.trim() || "item"}`, {
+      undoLabel: "Undo",
+      onUndo: () => {
+        setBill((prev) => {
+          if (prev.items.some((i) => i.id === removedItem.id)) return prev;
+          const nextItems = [...prev.items];
+          nextItems.splice(Math.min(idx, nextItems.length), 0, removedItem);
+          return { ...prev, items: nextItems };
+        });
+        setToast(null);
+      },
+    });
   };
 
   const syncSettlementsToCloud = useCallback(
@@ -527,6 +599,234 @@ export function BillSplitterApp() {
     });
   };
 
+  // --- Trips handlers ---
+  const handleCreateTrip = (
+    name: string,
+    currency: CurrencyCode,
+    members: TripMember[]
+  ) => {
+    const created = createNewTrip(name, currency, members);
+    setTrips((prev) => [created, ...prev]);
+    setActiveTripId(created.id);
+    showToast(`Created trip "${created.name}"`);
+  };
+
+  const handleTrySampleTrip = () => {
+    const sample = createSampleTrip(defaultSelfName, paymentInfo);
+    setTrips((prev) => [sample, ...prev]);
+    setActiveTripId(sample.id);
+    showToast("Loaded sample trip: Bali Weekend");
+  };
+
+  const handleUpdateTrip = (tripId: string, updater: (prev: Trip) => Trip) => {
+    let updatedRef: Trip | null = null;
+    setTrips((prev) =>
+      prev.map((t) => {
+        if (t.id !== tripId) return t;
+        updatedRef = updater(t);
+        return updatedRef;
+      })
+    );
+    queueMicrotask(() => {
+      if (updatedRef) {
+        scheduleCloudTripSync(updatedRef);
+      }
+    });
+  };
+
+  const handleDeleteExpenseWithUndo = (tripId: string, expenseId: string) => {
+    const targetTrip = trips.find((t) => t.id === tripId);
+    if (!targetTrip) return;
+    const idx = targetTrip.expenses.findIndex((e) => e.id === expenseId);
+    if (idx === -1) return;
+    const removed = targetTrip.expenses[idx];
+
+    handleUpdateTrip(tripId, (prev) => ({
+      ...prev,
+      expenses: prev.expenses.filter((e) => e.id !== expenseId),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    showToast(`Removed "${removed.title}"`, {
+      undoLabel: "Undo",
+      onUndo: () => {
+        handleUpdateTrip(tripId, (prev) => {
+          if (prev.expenses.some((e) => e.id === removed.id)) return prev;
+          const next = [...prev.expenses];
+          next.splice(Math.min(idx, next.length), 0, removed);
+          return { ...prev, expenses: next, updatedAt: new Date().toISOString() };
+        });
+        setToast(null);
+      },
+    });
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    const target = trips.find((t) => t.id === tripId);
+    if (!target) return;
+
+    setTrips((prev) => prev.filter((t) => t.id !== tripId));
+    if (activeTripId === tripId) setActiveTripId(null);
+
+    if (target.savedTripId && user) {
+      const supabase = getSupabaseBrowserClient();
+      if (supabase) {
+        await deleteSavedTrip(supabase, target.savedTripId);
+      }
+    }
+    showToast(`Deleted "${target.name}"`);
+  };
+
+  const handleSaveTripToCloud = async (tripId: string) => {
+    if (!user) {
+      setAccountOpen(true);
+      return;
+    }
+    const target = trips.find((t) => t.id === tripId);
+    if (!target) return;
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setSavingTrip(true);
+    try {
+      const saved = await saveTripToAccount(supabase, user.id, target);
+      if (!saved) {
+        showToast("Could not save trip. Make sure the trips SQL migration is applied.");
+        return;
+      }
+
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === tripId
+            ? {
+                ...t,
+                id: saved.id,
+                savedTripId: saved.id,
+                shareSlug: saved.shareSlug,
+                isPublic: saved.isPublic,
+              }
+            : t
+        )
+      );
+      setActiveTripId(saved.id);
+      showToast("Trip saved & share link ready");
+    } finally {
+      setSavingTrip(false);
+    }
+  };
+
+  const handleToggleTripPublic = async (tripId: string, nextPublic: boolean) => {
+    const target = trips.find((t) => t.id === tripId);
+    if (!target?.savedTripId) return;
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    const ok = await updateTripPublicVisibility(
+      supabase,
+      target.savedTripId,
+      nextPublic
+    );
+    if (ok) {
+      setTrips((prev) =>
+        prev.map((t) => (t.id === tripId ? { ...t, isPublic: nextPublic } : t))
+      );
+      showToast(
+        nextPublic ? "Public trip link enabled" : "Trip set to private"
+      );
+    }
+  };
+
+  /**
+   * Sends the active Single Bill from Step 4 into an existing Trip as an itemized
+   * TripExpense, mapping matching participant names cleanly and adding any missing crew.
+   */
+  const handleAddSingleBillToTrip = (tripId: string) => {
+    const targetTrip = trips.find((t) => t.id === tripId);
+    if (!targetTrip) return;
+
+    const nextMembers: TripMember[] = [...targetTrip.members];
+    const participantIdToMemberId = new Map<string, string>();
+
+    for (const p of bill.participants) {
+      const match = nextMembers.find(
+        (m) => m.name.trim().toLowerCase() === p.name.trim().toLowerCase()
+      );
+      if (match) {
+        participantIdToMemberId.set(p.id, match.id);
+      } else {
+        const newMember: TripMember = {
+          id: `tm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: p.name,
+          color: p.color,
+        };
+        nextMembers.push(newMember);
+        participantIdToMemberId.set(p.id, newMember.id);
+      }
+    }
+
+    const mappedItems = bill.items.map((item) => {
+      const mappedAssignees = item.assigneeIds
+        .map((id) => participantIdToMemberId.get(id))
+        .filter((id): id is string => Boolean(id));
+      const mappedShares: Record<string, number> | undefined = item.assigneeShares
+        ? Object.fromEntries(
+            Object.entries(item.assigneeShares)
+              .map(([pid, w]) => [participantIdToMemberId.get(pid), w] as const)
+              .filter(
+                (entry): entry is [string, number] => Boolean(entry[0])
+              )
+          )
+        : undefined;
+      return {
+        ...item,
+        assigneeIds: mappedAssignees,
+        ...(mappedShares ? { assigneeShares: mappedShares } : {}),
+      };
+    });
+
+    const mappedPayerId =
+      (bill.paidByParticipantId
+        ? participantIdToMemberId.get(bill.paidByParticipantId)
+        : null) ?? nextMembers[0]?.id ?? "";
+
+    const total = checkReceiptMath(
+      bill.items,
+      bill.tax,
+      bill.serviceCharge,
+      bill.discount,
+      null,
+      bill.currency
+    ).computedGrandTotal;
+
+    const newExpense: TripExpense = {
+      id: `exp-${Date.now()}`,
+      title: bill.merchantName.trim() || "Restaurant Bill",
+      date: new Date().toISOString().slice(0, 10),
+      category: "food",
+      paidByMemberId: mappedPayerId,
+      mode: "itemized",
+      amount: total,
+      assigneeIds: nextMembers.map((m) => m.id),
+      items: mappedItems,
+      tax: bill.tax,
+      serviceCharge: bill.serviceCharge,
+      discount: bill.discount,
+    };
+
+    handleUpdateTrip(tripId, (prev) => ({
+      ...prev,
+      members: nextMembers,
+      expenses: [newExpense, ...prev.expenses],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    setMode("trips");
+    setActiveTripId(tripId);
+    showToast(`Added "${newExpense.title}" to ${targetTrip.name}`);
+  };
+
+  // --- Auth & Account handlers ---
   const handleSignInGoogle = async () => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -590,6 +890,7 @@ export function BillSplitterApp() {
   };
 
   const handleOpenSavedBill = (saved: SavedBillSummary) => {
+    setMode("bill");
     setBill({
       savedBillId: saved.id,
       shareSlug: saved.share_slug,
@@ -612,6 +913,7 @@ export function BillSplitterApp() {
   };
 
   const handleDuplicateSavedBill = (saved: SavedBillSummary) => {
+    setMode("bill");
     const participants =
       saved.participants.length > 0
         ? saved.participants.map((p, idx) => ({
@@ -729,84 +1031,164 @@ export function BillSplitterApp() {
     [bill.items, bill.tax, bill.serviceCharge, bill.discount, bill.currency]
   );
 
+  const headerCurrency =
+    mode === "trips" && activeTrip ? activeTrip.currency : bill.currency;
+
+  const availableTripsSummary = useMemo(
+    () => trips.map((t) => ({ id: t.id, name: t.name })),
+    [trips]
+  );
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-app)]">
       <AppHeader
-        currency={bill.currency}
+        currency={headerCurrency}
         theme={theme}
         user={user}
         savedCount={savedBills.length}
-        onLogoClick={() => setStep(1)}
+        onLogoClick={() => {
+          setMode("bill");
+          setStep(1);
+        }}
         onOpenCurrency={() => setCurrencyOpen(true)}
         onToggleTheme={handleToggleTheme}
         onOpenAccount={() => setAccountOpen(true)}
       />
 
-      <StepIndicator
-        currentStep={step}
-        canNavigateTo={canNavigateTo}
-        onSelectStep={setStep}
-      />
+      {/* Compact Single Bill / Trips Mode Switcher */}
+      <div className="mx-auto w-full max-w-md px-4 pt-3">
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1"
+          role="tablist"
+          aria-label="App mode"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "bill"}
+            onClick={() => setMode("bill")}
+            className={`flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              mode === "bill"
+                ? "bg-[var(--bg-surface-2)] text-[var(--text-primary)] shadow-xs"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <ReceiptText className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+            <span>Single Bill</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "trips"}
+            onClick={() => setMode("trips")}
+            className={`flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              mode === "trips"
+                ? "bg-[var(--bg-surface-2)] text-[var(--text-primary)] shadow-xs"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            <Compass className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+            <span>
+              Trips{trips.length > 0 ? ` (${trips.length})` : ""}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {mode === "bill" && (
+        <StepIndicator
+          currentStep={step}
+          canNavigateTo={canNavigateTo}
+          onSelectStep={setStep}
+        />
+      )}
 
       <main className="mx-auto w-full max-w-md flex-1 px-4">
-        {step === 1 && (
-          <StartStep
-            currency={bill.currency}
-            isSignedIn={Boolean(user)}
-            supabaseEnabled={supabaseEnabled}
-            authLoading={authLoading}
-            scanQuota={scanQuota}
-            hasActiveBill={hasValidItems}
-            activeMerchant={bill.merchantName}
-            activeTotal={activeTotal}
-            onSignInGoogle={handleSignInGoogle}
-            onQuotaUpdate={setScanQuota}
-            onScanSuccess={handleScanSuccess}
-            onStartManual={handleStartManual}
-            onTrySample={handleTrySample}
-            onResumeBill={() => setStep(2)}
-          />
-        )}
-
-        {step === 2 && (
-          <ReviewStep
-            bill={bill}
-            onUpdateBill={setBill}
-            onDeleteItemWithUndo={handleDeleteItemWithUndo}
-            onOpenCurrency={() => setCurrencyOpen(true)}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
-          />
-        )}
-
-        {step === 3 && (
-          <AssignStep
-            bill={bill}
+        {mode === "trips" ? (
+          <TripsView
+            trips={trips}
+            activeTripId={activeTripId}
+            defaultSelfName={defaultSelfName}
+            defaultPaymentInfo={paymentInfo}
             savedFriends={savedFriends}
             isSignedIn={Boolean(user)}
-            onUpdateBill={setBill}
-            onSaveFriend={handleSaveFriend}
-            onDeleteSavedFriend={handleDeleteSavedFriend}
-            onBack={() => setStep(2)}
-            onNext={() => setStep(4)}
-          />
-        )}
-
-        {step === 4 && (
-          <SummaryStep
-            bill={bill}
-            paymentInfo={paymentInfo}
-            isSignedIn={Boolean(user)}
             supabaseEnabled={supabaseEnabled}
-            savingBill={savingBill}
-            onPaymentInfoChange={handlePaymentInfoChange}
-            onChangePaidBy={handleChangePaidBy}
-            onToggleSettled={handleToggleSettled}
-            onSaveBillToCloud={handleSaveBillToCloud}
+            savingTrip={savingTrip}
+            onSelectTrip={setActiveTripId}
+            onCreateTrip={handleCreateTrip}
+            onTrySampleTrip={handleTrySampleTrip}
+            onUpdateTrip={handleUpdateTrip}
+            onDeleteTrip={handleDeleteTrip}
+            onDeleteExpenseWithUndo={handleDeleteExpenseWithUndo}
+            onSaveTripToCloud={handleSaveTripToCloud}
+            onToggleTripPublic={handleToggleTripPublic}
             onOpenAccount={() => setAccountOpen(true)}
-            onBackToAssign={() => setStep(3)}
-            onNewSplit={handleNewSplit}
+            onQuotaUpdate={setScanQuota}
           />
+        ) : (
+          <>
+            {step === 1 && (
+              <StartStep
+                currency={bill.currency}
+                isSignedIn={Boolean(user)}
+                supabaseEnabled={supabaseEnabled}
+                authLoading={authLoading}
+                scanQuota={scanQuota}
+                hasActiveBill={hasValidItems}
+                activeMerchant={bill.merchantName}
+                activeTotal={activeTotal}
+                onSignInGoogle={handleSignInGoogle}
+                onQuotaUpdate={setScanQuota}
+                onScanSuccess={handleScanSuccess}
+                onStartManual={handleStartManual}
+                onTrySample={handleTrySample}
+                onResumeBill={() => setStep(2)}
+              />
+            )}
+
+            {step === 2 && (
+              <ReviewStep
+                bill={bill}
+                onUpdateBill={setBill}
+                onDeleteItemWithUndo={handleDeleteItemWithUndo}
+                onOpenCurrency={() => setCurrencyOpen(true)}
+                onBack={() => setStep(1)}
+                onNext={() => setStep(3)}
+              />
+            )}
+
+            {step === 3 && (
+              <AssignStep
+                bill={bill}
+                savedFriends={savedFriends}
+                isSignedIn={Boolean(user)}
+                onUpdateBill={setBill}
+                onSaveFriend={handleSaveFriend}
+                onDeleteSavedFriend={handleDeleteSavedFriend}
+                onBack={() => setStep(2)}
+                onNext={() => setStep(4)}
+              />
+            )}
+
+            {step === 4 && (
+              <SummaryStep
+                bill={bill}
+                paymentInfo={paymentInfo}
+                isSignedIn={Boolean(user)}
+                supabaseEnabled={supabaseEnabled}
+                savingBill={savingBill}
+                availableTrips={availableTripsSummary}
+                onAddBillToTrip={handleAddSingleBillToTrip}
+                onPaymentInfoChange={handlePaymentInfoChange}
+                onChangePaidBy={handleChangePaidBy}
+                onToggleSettled={handleToggleSettled}
+                onSaveBillToCloud={handleSaveBillToCloud}
+                onOpenAccount={() => setAccountOpen(true)}
+                onBackToAssign={() => setStep(3)}
+                onNewSplit={handleNewSplit}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -815,7 +1197,7 @@ export function BillSplitterApp() {
         <CurrencySheet
           open={currencyOpen}
           onClose={() => setCurrencyOpen(false)}
-          selected={bill.currency}
+          selected={headerCurrency}
           onSelect={handleCurrencyChange}
         />
       )}

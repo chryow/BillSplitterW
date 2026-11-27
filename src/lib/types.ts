@@ -170,3 +170,92 @@ export interface ScanApiError {
   message: string;
   retryAfterSeconds?: number;
 }
+
+export type AppMode = "bill" | "trips";
+
+export type TripExpenseCategory =
+  | "food"
+  | "stay"
+  | "transport"
+  | "activity"
+  | "other";
+
+export interface TripMember {
+  id: string;
+  name: string;
+  color: string;
+  paymentInfo?: PaymentInfo;
+}
+
+export interface TripExpense {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  category: TripExpenseCategory;
+  paidByMemberId: string;
+  mode: "quick" | "itemized";
+  /** Total amount for quick-mode bills */
+  amount: number;
+  /** Assigned member IDs for quick-mode bills */
+  assigneeIds: string[];
+  /** Optional custom relative share weights for quick-mode bills */
+  assigneeShares?: Record<string, number>;
+  /** Detailed itemized receipt lines when mode === "itemized" */
+  items?: BillItem[];
+  tax?: number;
+  serviceCharge?: number;
+  discount?: number;
+}
+
+export interface Trip {
+  id: string;
+  savedTripId: string | null;
+  shareSlug: string | null;
+  isPublic: boolean;
+  name: string;
+  currency: CurrencyCode;
+  members: TripMember[];
+  expenses: TripExpense[];
+  settledTransferKeys: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TripExpenseComputed {
+  expenseId: string;
+  total: number;
+  sharesByMemberId: Record<string, number>;
+  unassignedAmount: number;
+}
+
+export interface TripMemberBalance {
+  memberId: string;
+  name: string;
+  color: string;
+  paymentInfo?: PaymentInfo;
+  totalPaid: number;
+  totalShare: number;
+  /** Positive = owed money back; Negative = owes money */
+  netBalance: number;
+  paidCount: number;
+}
+
+export interface TripTransfer {
+  key: string;
+  fromMemberId: string;
+  fromName: string;
+  fromColor: string;
+  toMemberId: string;
+  toName: string;
+  toColor: string;
+  toPaymentInfo?: PaymentInfo;
+  amount: number;
+}
+
+export interface TripCalculationResult {
+  currency: CurrencyCode;
+  totalSpend: number;
+  expenseSummaries: Record<string, TripExpenseComputed>;
+  balances: TripMemberBalance[];
+  transfers: TripTransfer[];
+}

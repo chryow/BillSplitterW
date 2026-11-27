@@ -39,11 +39,12 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never intercept auth callbacks, API routes, or public dynamic bills
+  // Never intercept auth callbacks, API routes, or public dynamic bills/trips
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/auth/") ||
-    url.pathname.startsWith("/bill/")
+    url.pathname.startsWith("/bill/") ||
+    url.pathname.startsWith("/trip/")
   ) {
     return;
   }

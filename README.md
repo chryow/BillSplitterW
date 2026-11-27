@@ -15,9 +15,12 @@ A fast, minimalist, mobile-first Split Bill Web App (PWA) designed for everyday 
   1. **Capture / Manual / Sample Receipt** (live remaining scan quota badge + Indonesian restaurant sample receipt + offline PWA shell via `public/sw.js`).
   2. **Review & Fix** (inline editing with **Undo** toast on delete, 1-tap **Split Qty**, quick **+10% PB1 / +11% PPN / +5% / +7% Service** chips, and automatic receipt math check banner).
   3. **Add People & Assign** (colored participant chips, saved friends, **Paid by** selector, **Split all equally** & **Assign remaining to** shortcuts, tap-to-assign, and optional unequal custom shares like `2:1` portions).
-  4. **Final Breakdown & Share** (per-person cards with **Paid / Unpaid** checklist, individual **Copy / WhatsApp Nudge**, optional friendly **Round-Up** pills, 1-tap **Save PNG Card**, collapsible auto-filled Payment Info, **Copy Summary** + **Open in WhatsApp**, **Undo** on reset, **Reuse** past group from History, and read-only `/bill/[slug]` links with 1-tap **Copy Account Number**).
+  4. **Final Breakdown & Share** (per-person cards with **Paid / Unpaid** checklist, individual **Copy / WhatsApp Nudge**, optional friendly **Round-Up** pills, 1-tap **Save PNG Card**, collapsible auto-filled Payment Info, **Copy Summary** + **Open in WhatsApp**, **Undo** on reset, **Reuse** past group from History, **Add to Trip**, and read-only `/bill/[slug]` links with 1-tap **Copy Account Number**).
+- **Group Trips Mode (`Single Bill` | `Trips`):**
+  - Combine multiple quick bills and AI-scanned/itemized restaurant receipts under one Trip crew and base currency.
+  - Store optional receiving **Payment Info per member**, automatically simplify balances into the **minimum possible transfers**, track **Paid / Unpaid** transfers, nudge debtors on WhatsApp, export a **PNG Trip Card**, and share one read-only **`/trip/[slug]`** link with friends.
 - **Multi-Currency:** Default `IDR` (`Rp 45.000`, zero decimals) + quick switcher for `USD`, `SGD`, `MYR`, `EUR`, and `JPY`.
-- **Exact Math Engine (`src/lib/split-engine.ts`):** Minor-unit arithmetic with largest-remainder rounding guarantees individual totals always sum exactly to the grand total.
+- **Exact Math Engine (`src/lib/split-engine.ts` & `src/lib/trip-engine.ts`):** Minor-unit arithmetic with largest-remainder rounding guarantees individual totals and minimum transfers always net cleanly to exact zero.
 
 ---
 
@@ -51,7 +54,7 @@ npm run build
 ## Supabase & Google Sign-In Setup
 
 1. **Apply the Database Migrations:**
-   - Because this repo includes migrations under `supabase/migrations/` (`20261127000000_init_bill_splitter.sql`, `20261127010000_scan_quota_and_settlements.sql`, and `20261127020000_ocr_cache.sql`), Supabase's GitHub Integration applies them automatically on merge—or paste each SQL file in order into **Supabase Dashboard → SQL Editor → Run**.
+   - Because this repo includes migrations under `supabase/migrations/` (`20261127000000_init_bill_splitter.sql`, `20261127010000_scan_quota_and_settlements.sql`, `20261127020000_ocr_cache.sql`, and `20261127030000_trips.sql`), Supabase's GitHub Integration applies them automatically on merge—or paste each SQL file in order into **Supabase Dashboard → SQL Editor → Run**.
 2. **Enable Google OAuth in Supabase:**
    - In Google Cloud Console → **APIs & Services → Credentials → Create OAuth Client ID (Web application)**:
      - Authorized redirect URI: `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`
