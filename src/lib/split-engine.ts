@@ -15,6 +15,7 @@ export interface SplitInput {
   items: BillItem[];
   tax: number;
   serviceCharge: number;
+  deliveryFee?: number;
   discount: number;
   participants: Participant[];
   feeSplitMode: FeeSplitMode;
@@ -89,6 +90,8 @@ function getNormalizedShareWeight(
  * - Zero-decimal currencies (IDR, JPY) round to nearest integer.
  * - 2-decimal currencies (USD, SGD, MYR, EUR) round to 2 decimal places.
  * - Supports equal and custom weighted per-person shares (`assigneeShares`).
+ * - Tax, Service Charge, and Discount scale proportionally to each person's food subtotal.
+ * - Delivery Fee (Ongkir / App / Packaging) splits EQUALLY among everyone who ordered.
  * - Largest-remainder rounding guarantees sum(people.total) === grandTotal whenever
  *   at least one participant exists and all items are assigned.
  */
@@ -105,13 +108,22 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
   );
   const taxMinor = Math.max(0, toMinorUnits(input.tax, currency));
   const serviceMinor = Math.max(0, toMinorUnits(input.serviceCharge, currency));
+  const deliveryMinor = Math.max(
+    0,
+    toMinorUnits(input.deliveryFee ?? 0, currency)
+  );
   const rawDiscountMinor = Math.max(0, toMinorUnits(input.discount, currency));
   // Cap effective discount so grand total cannot go below 0
-  const maxDiscountable = itemsSubtotalMinor + taxMinor + serviceMinor;
+  const maxDiscountable =
+    itemsSubtotalMinor + taxMinor + serviceMinor + deliveryMinor;
   const effectiveDiscountMinor = Math.min(rawDiscountMinor, maxDiscountable);
   const grandTotalMinor = Math.max(
     0,
-    itemsSubtotalMinor + taxMinor + serviceMinor - effectiveDiscountMinor
+    itemsSubtotalMinor +
+      taxMinor +
+      serviceMinor +
+      deliveryMinor -
+      effectiveDiscountMinor
   );
 
   const perPersonItems: PersonAssignedItem[][] = Array.from({ length: n }, () => []);
@@ -169,6 +181,7 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
       itemsSubtotal: fromMinorUnits(itemsSubtotalMinor, currency),
       tax: fromMinorUnits(taxMinor, currency),
       serviceCharge: fromMinorUnits(serviceMinor, currency),
+      deliveryFee: fromMinorUnits(deliveryMinor, currency),
       discount: fromMinorUnits(effectiveDiscountMinor, currency),
       grandTotal: fromMinorUnits(grandTotalMinor, currency),
       assignedSubtotal: fromMinorUnits(assignedSubtotalMinor, currency),
@@ -179,37 +192,54 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
     };
   }
 
-  // Determine fee/discount weights
+  // Determine tax/service/discount weights (proportional to food subtotal)
   const totalItemWeight = personExactItemWeight.reduce((acc, w) => acc + w, 0);
   const feeWeights =
     feeSplitMode === "equal" || totalItemWeight === 0
       ? new Array<number>(n).fill(1)
       : personExactItemWeight;
 
-  // Target bill total covered by assigned items + fees - discount
+  // Delivery Fee splits equally among participants who actually ordered at least 1 item
+  // (falls back to equal across everyone if no items are assigned yet)
+  const activeOrderersCount = perPersonItems.filter((list) => list.length > 0).length;
+  const deliveryWeights =
+    activeOrderersCount > 0
+      ? perPersonItems.map((list) => (list.length > 0 ? 1 : 0))
+      : new Array<number>(n).fill(1);
+
+  // Target bill total covered by assigned items + fees + delivery - discount
   const targetPeopleSumMinor = Math.max(
     0,
-    assignedSubtotalMinor + taxMinor + serviceMinor - effectiveDiscountMinor
+    assignedSubtotalMinor +
+      taxMinor +
+      serviceMinor +
+      deliveryMinor -
+      effectiveDiscountMinor
   );
   const effectivePeopleDiscountMinor = Math.min(
     effectiveDiscountMinor,
-    assignedSubtotalMinor + taxMinor + serviceMinor
+    assignedSubtotalMinor + taxMinor + serviceMinor + deliveryMinor
   );
 
   const taxSharesMinor = allocateLargestRemainder(taxMinor, feeWeights, 0);
   const serviceSharesMinor = allocateLargestRemainder(serviceMinor, feeWeights, 1);
+  const deliverySharesMinor = allocateLargestRemainder(
+    deliveryMinor,
+    deliveryWeights,
+    3
+  );
   let discountSharesMinor = allocateLargestRemainder(
     effectivePeopleDiscountMinor,
     feeWeights,
     2
   );
 
-  // Prevent any individual person's total from dipping negative (e.g. equal discount
-  // split when one person ordered less than the average discount). Rebalance excess
+  // Prevent any individual person's total from dipping negative. Rebalance excess
   // discount onto people with remaining positive capacity so totals stay >= 0 and
   // sum(people.total) === targetPeopleSumMinor.
   const preDiscountTotals = personItemSubtotalMinor.map(
-    (sub, i) => sub + taxSharesMinor[i] + serviceSharesMinor[i]
+    (sub, i) =>
+      sub + taxSharesMinor[i] + serviceSharesMinor[i] + deliverySharesMinor[i]
   );
 
   let overflowDiscount = 0;
@@ -260,6 +290,7 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
     itemSubtotal: fromMinorUnits(personItemSubtotalMinor[i], currency),
     taxShare: fromMinorUnits(taxSharesMinor[i], currency),
     serviceShare: fromMinorUnits(serviceSharesMinor[i], currency),
+    deliveryShare: fromMinorUnits(deliverySharesMinor[i], currency),
     discountShare: fromMinorUnits(discountSharesMinor[i], currency),
     total: fromMinorUnits(personTotalsMinor[i], currency),
   }));
@@ -271,6 +302,7 @@ export function calculateSplit(input: SplitInput): SplitCalculationResult {
     itemsSubtotal: fromMinorUnits(itemsSubtotalMinor, currency),
     tax: fromMinorUnits(taxMinor, currency),
     serviceCharge: fromMinorUnits(serviceMinor, currency),
+    deliveryFee: fromMinorUnits(deliveryMinor, currency),
     discount: fromMinorUnits(effectiveDiscountMinor, currency),
     grandTotal: fromMinorUnits(grandTotalMinor, currency),
     assignedSubtotal: fromMinorUnits(assignedSubtotalMinor, currency),
@@ -371,7 +403,8 @@ export function checkReceiptMath(
   serviceCharge: number,
   discount: number,
   scannedGrandTotal: number | null,
-  currency: CurrencyCode
+  currency: CurrencyCode,
+  deliveryFee = 0
 ): {
   computedSubtotal: number;
   computedGrandTotal: number;
@@ -384,10 +417,11 @@ export function checkReceiptMath(
   );
   const taxMinor = Math.max(0, toMinorUnits(tax, currency));
   const serviceMinor = Math.max(0, toMinorUnits(serviceCharge, currency));
+  const deliveryMinor = Math.max(0, toMinorUnits(deliveryFee, currency));
   const discountMinor = Math.max(0, toMinorUnits(discount, currency));
   const computedTotalMinor = Math.max(
     0,
-    subtotalMinor + taxMinor + serviceMinor - discountMinor
+    subtotalMinor + taxMinor + serviceMinor + deliveryMinor - discountMinor
   );
 
   if (scannedGrandTotal === null) {

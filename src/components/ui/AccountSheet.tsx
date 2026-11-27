@@ -69,6 +69,7 @@ export function AccountSheet({
           items: bill.items,
           tax: bill.tax,
           serviceCharge: bill.service_charge,
+          deliveryFee: bill.delivery_fee,
           discount: bill.discount,
           participants: bill.participants,
           feeSplitMode: "proportional",

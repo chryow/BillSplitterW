@@ -64,6 +64,7 @@ export default async function SharedBillPage({ params }: PageProps) {
     fee_split_mode: "proportional",
     tax: Number(row.tax ?? 0),
     service_charge: Number(row.service_charge ?? 0),
+    delivery_fee: Number(row.delivery_fee ?? 0),
     discount: Number(row.discount ?? 0),
     items: Array.isArray(row.items) ? row.items : [],
     participants: Array.isArray(row.participants) ? row.participants : [],

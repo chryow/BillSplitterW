@@ -70,4 +70,52 @@ describe("whatsapp-formatter", () => {
     expect(summary).toContain("Rounded up to nearest Rp 1.000 (+Rp 500 buffer)");
     expect(buildWhatsAppShareUrl(summary)).toContain("https://wa.me/?text=");
   });
+
+  it("includes delivery fee share in both group summary and individual nudge", () => {
+    const deliverySplit = calculateSplit({
+      currency: "IDR",
+      items: [
+        {
+          id: "i1",
+          name: "Ayam Geprek",
+          qty: 1,
+          unitPrice: 30000,
+          totalPrice: 30000,
+          assigneeIds: ["p1"],
+        },
+        {
+          id: "i2",
+          name: "Es Kopi",
+          qty: 1,
+          unitPrice: 20000,
+          totalPrice: 20000,
+          assigneeIds: ["p2"],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 0,
+      deliveryFee: 14000,
+      discount: 0,
+      participants: [
+        { id: "p1", name: "You", color: "#10B981" },
+        { id: "p2", name: "Budi", color: "#38BDF8" },
+      ],
+      feeSplitMode: "proportional",
+    });
+
+    const summary = formatWhatsAppSummary({
+      merchantName: "GoFood Order",
+      feeSplitMode: "proportional",
+      split: deliverySplit,
+    });
+    expect(summary).toContain("Deliv Rp 7.000");
+
+    const nudge = formatPersonNudge({
+      merchantName: "GoFood Order",
+      person: deliverySplit.people[1],
+      currency: "IDR",
+    });
+    expect(nudge).toContain("*Rp 27.000*");
+    expect(nudge).toContain("Deliv Rp 7.000");
+  });
 });

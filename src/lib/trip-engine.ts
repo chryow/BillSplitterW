@@ -142,6 +142,7 @@ export function calculateTrip(input: TripCalculationInput): TripCalculationResul
         items: expense.items,
         tax: expense.tax ?? 0,
         serviceCharge: expense.serviceCharge ?? 0,
+        deliveryFee: expense.deliveryFee ?? 0,
         discount: expense.discount ?? 0,
         participants: members,
         feeSplitMode: "proportional",

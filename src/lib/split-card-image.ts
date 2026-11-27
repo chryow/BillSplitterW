@@ -78,7 +78,12 @@ export async function generateSplitCardPng(
     const visibleItems = Math.min(p.items.length, 4);
     const hasOverflow = p.items.length > 4 ? 1 : 0;
     const hasFees =
-      p.taxShare > 0 || p.serviceShare > 0 || p.discountShare > 0 ? 1 : 0;
+      p.taxShare > 0 ||
+      p.serviceShare > 0 ||
+      p.deliveryShare > 0 ||
+      p.discountShare > 0
+        ? 1
+        : 0;
     return 44 + (visibleItems + hasOverflow) * 18 + hasFees * 16 + 10;
   });
   const peopleBlockHeight =
@@ -171,6 +176,9 @@ export async function generateSplitCardPng(
   if (split.tax > 0) metaBits.push(`Tax ${formatCurrency(split.tax, cur)}`);
   if (split.serviceCharge > 0) {
     metaBits.push(`Svc ${formatCurrency(split.serviceCharge, cur)}`);
+  }
+  if (split.deliveryFee > 0) {
+    metaBits.push(`Deliv ${formatCurrency(split.deliveryFee, cur)}`);
   }
   if (split.discount > 0) {
     metaBits.push(`Disc -${formatCurrency(split.discount, cur)}`);
@@ -274,6 +282,9 @@ export async function generateSplitCardPng(
     }
     if (person.serviceShare > 0) {
       fees.push(`Svc +${formatCurrency(person.serviceShare, cur)}`);
+    }
+    if (person.deliveryShare > 0) {
+      fees.push(`Deliv +${formatCurrency(person.deliveryShare, cur)}`);
     }
     if (person.discountShare > 0) {
       fees.push(`Disc -${formatCurrency(person.discountShare, cur)}`);

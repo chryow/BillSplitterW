@@ -190,6 +190,11 @@ export function convertReceiptToCurrency(
     rate,
     targetCurrency
   );
+  const convertedDelivery = convertAmount(
+    receipt.delivery_fee ?? 0,
+    rate,
+    targetCurrency
+  );
   const convertedDiscount = convertAmount(
     receipt.discount,
     rate,
@@ -211,6 +216,7 @@ export function convertReceiptToCurrency(
     subtotal: convertedSubtotal,
     tax: convertedTax,
     service_charge: convertedService,
+    delivery_fee: convertedDelivery,
     discount: convertedDiscount,
     grand_total: convertedGrandTotal,
     conversion: {

@@ -41,11 +41,15 @@ const RECEIPT_RESPONSE_SCHEMA: Schema = {
     },
     service_charge: {
       type: Type.NUMBER,
-      description: "Service charge amount (e.g. Service, Svc, SC). Use 0 if none.",
+      description: "Restaurant service charge (e.g. Service, Svc, SC). Use 0 if none.",
+    },
+    delivery_fee: {
+      type: Type.NUMBER,
+      description: "Food delivery, driver, platform, order, or packaging fees (e.g. Ongkir, Biaya Pengiriman, Biaya Aplikasi, Biaya Penanganan, Delivery Fee, Packaging Fee). Use 0 if none.",
     },
     discount: {
       type: Type.NUMBER,
-      description: "Total promo/voucher/discount amount as a POSITIVE number. Use 0 if none.",
+      description: "Total promo/voucher/discount amount (including food & delivery promos) as a POSITIVE number. Use 0 if none.",
     },
     grand_total: {
       type: Type.NUMBER,
@@ -65,13 +69,14 @@ const RECEIPT_RESPONSE_SCHEMA: Schema = {
     "subtotal",
     "tax",
     "service_charge",
+    "delivery_fee",
     "discount",
     "grand_total",
     "warnings",
   ],
 };
 
-const RECEIPT_OCR_PROMPT = `You are a high-accuracy receipt parser built for Indonesian and international restaurant/retail receipts.
+const RECEIPT_OCR_PROMPT = `You are a high-accuracy receipt parser built for Indonesian and international restaurant, retail, and food delivery (GoFood, GrabFood, ShopeeFood, Deliveroo, Uber Eats) receipts/screenshots.
 Extract structured data from the receipt image and return JSON matching the schema strictly.
 
 Rules:
@@ -81,19 +86,20 @@ Rules:
    - International receipts (USD, SGD, MYR, EUR) may include 2 decimals (e.g. "$12.50" -> 12.5, "1,250.50" -> 1250.5).
    - Japanese Yen (JPY) has no decimals (e.g. "¥1,200" -> 1200).
 2. Currency detection (CRITICAL — always detect accurately, NEVER guess USD/SGD for IDR):
-   - Return "IDR" whenever you see Rp, IDR, PB1, PPN, Total Bayar, Tunai, Kembalian, Diskon, Indonesian dish/city names (e.g. Nasi, Ayam, Es Teh, Jl., Jakarta, Bali, Bandung), OR restaurant/retail prices in thousands like 15.000 - 500.000.
+   - Return "IDR" whenever you see Rp, IDR, PB1, PPN, Ongkir, Biaya Aplikasi, Total Bayar, Tunai, Kembalian, Diskon, Indonesian dish/city names (e.g. Nasi, Ayam, Es Teh, Jl., Jakarta, Bali, Bandung), OR restaurant/retail prices in thousands like 15.000 - 500.000.
    - Return "SGD" ONLY for explicit S$, SGD, or Singapore GST/addresses.
    - Return "USD" ONLY for explicit $, US$, USD, or clear US store/sales-tax indicators.
    - Return "MYR" for RM/MYR/SST, "EUR" for €/EUR, "JPY" for ¥/JPY/円.
    - If NO currency symbol or regional indicator is visible on the receipt, return null.
 3. Line items:
-   - Extract only purchased items. Exclude subtotal, tax, service charge, discounts, rounding lines, cash/change, and payment methods.
+   - Extract only purchased items. Exclude subtotal, tax, service charge, delivery/platform/packaging fees, discounts, rounding lines, cash/change, and payment methods.
    - If an item shows quantity (e.g. "2x Iced Latte 76.000"), set qty: 2, total_price: 76000, unit_price: 38000.
    - If quantity is omitted, default qty to 1 and set unit_price = total_price.
-4. Tax, Service Charge, and Discount:
+4. Tax, Service Charge, Delivery Fee, and Discount:
    - Combine PB1, PPN, VAT, GST, or Tax into "tax" (0 if absent).
-   - Put Service / Svc / SC / Service Charge into "service_charge" (0 if absent).
-   - Put promo, voucher, member discount, or cashback deductions into "discount" as a POSITIVE number (e.g. "-15.000" on receipt -> discount: 15000). Use 0 if absent.
+   - Put dine-in Service / Svc / SC / Service Charge into "service_charge" (0 if absent).
+   - Put food delivery fees into "delivery_fee": combine Ongkir / Biaya Pengiriman / Delivery Fee + Biaya Aplikasi / Biaya Penanganan / Platform Fee / Order Fee / Packaging Fee / Small Order Fee (0 if absent).
+   - Put promo, voucher, member discount, Diskon Ongkir, or cashback deductions into "discount" as a POSITIVE number (e.g. "-15.000" on receipt -> discount: 15000). Use 0 if absent.
 5. Warnings:
    - Add a brief user-friendly string in "warnings" if any line is blurry, cropped, folded, or ambiguous. Return [] if clear.`;
 
@@ -167,6 +173,7 @@ function sanitizeReceiptResponse(raw: unknown): ScannedReceiptResponse {
     subtotal: toNullableNumber(obj.subtotal),
     tax: Math.max(0, toFiniteNumber(obj.tax, 0)),
     service_charge: Math.max(0, toFiniteNumber(obj.service_charge, 0)),
+    delivery_fee: Math.max(0, toFiniteNumber(obj.delivery_fee, 0)),
     discount: Math.abs(toFiniteNumber(obj.discount, 0)),
     grand_total: toNullableNumber(obj.grand_total),
     warnings,

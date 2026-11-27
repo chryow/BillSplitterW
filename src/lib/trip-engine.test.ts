@@ -243,4 +243,61 @@ describe("trip-engine", () => {
     );
     expect(transferSum).toBe(positiveSum);
   });
+
+  it("splits itemized food delivery fee equally among orderers inside a trip", () => {
+    // You pay a GoFood order: You ordered 60k, Budi ordered 40k, Sari ordered nothing.
+    // Delivery Fee = 16k (equal among You & Budi = 8k each). Total = 116k.
+    // Budi owes You 48k; Sari owes 0.
+    const expenses: TripExpense[] = [
+      {
+        id: "gofood",
+        title: "GoFood Late Night",
+        date: "2026-11-27",
+        category: "food",
+        paidByMemberId: "m1",
+        mode: "itemized",
+        amount: 116000,
+        assigneeIds: [],
+        items: [
+          {
+            id: "i1",
+            name: "Nasi Goreng",
+            qty: 1,
+            unitPrice: 60000,
+            totalPrice: 60000,
+            assigneeIds: ["m1"],
+          },
+          {
+            id: "i2",
+            name: "Mie Goreng",
+            qty: 1,
+            unitPrice: 40000,
+            totalPrice: 40000,
+            assigneeIds: ["m2"],
+          },
+        ],
+        tax: 0,
+        serviceCharge: 0,
+        deliveryFee: 16000,
+        discount: 0,
+      },
+    ];
+
+    const result = calculateTrip({
+      currency: "IDR",
+      members: [M_YOU, M_BUDI, M_SARI],
+      expenses,
+    });
+
+    expect(result.totalSpend).toBe(116000);
+    expect(result.balances.find((b) => b.memberId === "m1")?.netBalance).toBe(48000);
+    expect(result.balances.find((b) => b.memberId === "m2")?.netBalance).toBe(-48000);
+    expect(result.balances.find((b) => b.memberId === "m3")?.netBalance).toBe(0);
+    expect(result.transfers).toHaveLength(1);
+    expect(result.transfers[0]).toMatchObject({
+      fromMemberId: "m2",
+      toMemberId: "m1",
+      amount: 48000,
+    });
+  });
 });

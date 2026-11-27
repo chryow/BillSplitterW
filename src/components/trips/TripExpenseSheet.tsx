@@ -125,6 +125,9 @@ export function TripExpenseSheet({
   const [serviceCharge, setServiceCharge] = useState(
     initialExpense?.serviceCharge ?? 0
   );
+  const [deliveryFee, setDeliveryFee] = useState(
+    initialExpense?.deliveryFee ?? 0
+  );
   const [discount, setDiscount] = useState(initialExpense?.discount ?? 0);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
 
@@ -139,7 +142,8 @@ export function TripExpenseSheet({
     serviceCharge,
     discount,
     null,
-    currency
+    currency,
+    deliveryFee
   );
 
   const toggleQuickAssignee = (memberId: string) => {
@@ -227,6 +231,7 @@ export function TripExpenseSheet({
       setCategory("food");
       setTax(roundForCurrency(payload.tax ?? 0, currency));
       setServiceCharge(roundForCurrency(payload.service_charge ?? 0, currency));
+      setDeliveryFee(roundForCurrency(payload.delivery_fee ?? 0, currency));
       setDiscount(roundForCurrency(payload.discount ?? 0, currency));
 
       const parsedItems: BillItem[] =
@@ -308,6 +313,7 @@ export function TripExpenseSheet({
             ),
             tax,
             serviceCharge,
+            deliveryFee,
             discount,
           }
         : {}),
@@ -776,8 +782,8 @@ export function TripExpenseSheet({
               })}
             </div>
 
-            {/* Compact Tax, Service & Discount with quick % chips */}
-            <div className="grid grid-cols-3 gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5">
+            {/* Compact Service, Delivery, Tax & Discount with quick % chips */}
+            <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5">
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-[var(--text-secondary)]">
@@ -802,6 +808,25 @@ export function TripExpenseSheet({
                   value={serviceCharge}
                   currency={currency}
                   onChange={setServiceCharge}
+                  ariaLabel="Service charge"
+                  className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-[var(--text-secondary)]">
+                    Delivery
+                  </span>
+                  <span className="text-[9px] text-[var(--text-muted)]">
+                    equal
+                  </span>
+                </div>
+                <AmountInput
+                  value={deliveryFee}
+                  currency={currency}
+                  onChange={setDeliveryFee}
+                  ariaLabel="Delivery fee"
                   className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
                 />
               </div>
@@ -830,6 +855,7 @@ export function TripExpenseSheet({
                   value={tax}
                   currency={currency}
                   onChange={setTax}
+                  ariaLabel="Tax amount"
                   className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
                 />
               </div>
@@ -842,6 +868,7 @@ export function TripExpenseSheet({
                   value={discount}
                   currency={currency}
                   onChange={setDiscount}
+                  ariaLabel="Discount amount"
                   className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--accent-text)] tabular-nums focus:outline-none"
                 />
               </div>

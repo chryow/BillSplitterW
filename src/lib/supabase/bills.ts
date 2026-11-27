@@ -54,6 +54,7 @@ function mapBillRow(row: Record<string, unknown>): SavedBillSummary {
     subtotal: Number(row.subtotal ?? 0),
     tax: Number(row.tax ?? 0),
     service_charge: Number(row.service_charge ?? 0),
+    delivery_fee: Number(row.delivery_fee ?? 0),
     discount: Number(row.discount ?? 0),
     grand_total: Number(row.grand_total ?? 0),
     items: Array.isArray(row.items) ? row.items : [],
@@ -160,37 +161,33 @@ export async function deleteSavedFriend(
 
 const BILLS_BASE_COLUMNS =
   "id, share_slug, is_public, merchant_name, currency, fee_split_mode, subtotal, tax, service_charge, discount, grand_total, items, participants, payment_info, created_at";
-const BILLS_EXTENDED_COLUMNS = `${BILLS_BASE_COLUMNS}, paid_by_participant_id, settled_participant_ids`;
+const BILLS_SETTLEMENT_COLUMNS = `${BILLS_BASE_COLUMNS}, paid_by_participant_id, settled_participant_ids`;
+const BILLS_EXTENDED_COLUMNS = `${BILLS_SETTLEMENT_COLUMNS}, delivery_fee`;
 
 export async function fetchUserBills(
   supabase: SupabaseClient,
   userId: string
 ): Promise<SavedBillSummary[]> {
-  const extended = await supabase
-    .from("bills")
-    .select(BILLS_EXTENDED_COLUMNS)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  for (const columns of [
+    BILLS_EXTENDED_COLUMNS,
+    BILLS_SETTLEMENT_COLUMNS,
+    BILLS_BASE_COLUMNS,
+  ]) {
+    const res = await supabase
+      .from("bills")
+      .select(columns)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
-  if (!extended.error && extended.data) {
-    return extended.data.map((row) =>
-      mapBillRow(row as unknown as Record<string, unknown>)
-    );
+    if (!res.error && res.data) {
+      return res.data.map((row) =>
+        mapBillRow(row as unknown as Record<string, unknown>)
+      );
+    }
   }
 
-  // Graceful fallback if the settlement columns migration hasn't been applied yet
-  const legacy = await supabase
-    .from("bills")
-    .select(BILLS_BASE_COLUMNS)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (legacy.error || !legacy.data) return [];
-  return legacy.data.map((row) =>
-    mapBillRow(row as unknown as Record<string, unknown>)
-  );
+  return [];
 }
 
 export async function saveBillToAccount(
@@ -204,6 +201,7 @@ export async function saveBillToAccount(
     items: bill.items,
     tax: bill.tax,
     serviceCharge: bill.serviceCharge,
+    deliveryFee: bill.deliveryFee,
     discount: bill.discount,
     participants: bill.participants,
     feeSplitMode: "proportional",
@@ -225,18 +223,44 @@ export async function saveBillToAccount(
     payment_info: paymentInfo,
   };
 
-  const extendedPayload = {
+  const settlementPayload = {
     ...basePayload,
     paid_by_participant_id: bill.paidByParticipantId,
     settled_participant_ids: bill.settledParticipantIds,
   };
 
+  const fullPayload = {
+    ...settlementPayload,
+    delivery_fee: split.deliveryFee,
+  };
+
+  const payloads = [fullPayload, settlementPayload, basePayload];
+
   if (bill.savedBillId) {
+    for (const payload of payloads) {
+      const attempt = await supabase
+        .from("bills")
+        .update(payload)
+        .eq("id", bill.savedBillId)
+        .eq("user_id", userId)
+        .select("id, share_slug, is_public")
+        .single();
+
+      if (!attempt.error && attempt.data) {
+        return {
+          id: String(attempt.data.id),
+          shareSlug: String(attempt.data.share_slug),
+          isPublic: Boolean(attempt.data.is_public),
+        };
+      }
+    }
+  }
+
+  const shareSlug = bill.shareSlug || generateShareSlug();
+  for (const payload of payloads) {
     const attempt = await supabase
       .from("bills")
-      .update(extendedPayload)
-      .eq("id", bill.savedBillId)
-      .eq("user_id", userId)
+      .insert({ ...payload, share_slug: shareSlug })
       .select("id, share_slug, is_public")
       .single();
 
@@ -247,52 +271,9 @@ export async function saveBillToAccount(
         isPublic: Boolean(attempt.data.is_public),
       };
     }
-
-    const legacyAttempt = await supabase
-      .from("bills")
-      .update(basePayload)
-      .eq("id", bill.savedBillId)
-      .eq("user_id", userId)
-      .select("id, share_slug, is_public")
-      .single();
-
-    if (!legacyAttempt.error && legacyAttempt.data) {
-      return {
-        id: String(legacyAttempt.data.id),
-        shareSlug: String(legacyAttempt.data.share_slug),
-        isPublic: Boolean(legacyAttempt.data.is_public),
-      };
-    }
   }
 
-  const shareSlug = bill.shareSlug || generateShareSlug();
-  const insertExtended = await supabase
-    .from("bills")
-    .insert({ ...extendedPayload, share_slug: shareSlug })
-    .select("id, share_slug, is_public")
-    .single();
-
-  if (!insertExtended.error && insertExtended.data) {
-    return {
-      id: String(insertExtended.data.id),
-      shareSlug: String(insertExtended.data.share_slug),
-      isPublic: Boolean(insertExtended.data.is_public),
-    };
-  }
-
-  const insertLegacy = await supabase
-    .from("bills")
-    .insert({ ...basePayload, share_slug: shareSlug })
-    .select("id, share_slug, is_public")
-    .single();
-
-  if (insertLegacy.error || !insertLegacy.data) return null;
-
-  return {
-    id: String(insertLegacy.data.id),
-    shareSlug: String(insertLegacy.data.share_slug),
-    isPublic: Boolean(insertLegacy.data.is_public),
-  };
+  return null;
 }
 
 export async function updateBillSettlements(
