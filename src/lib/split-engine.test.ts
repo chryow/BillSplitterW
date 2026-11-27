@@ -666,4 +666,36 @@ describe("split-engine", () => {
     expect(check.isMatch).toBe(true);
     expect(check.difference).toBe(0);
   });
+
+  it("handles zero-decimal TWD splits and NT$5 / NT$10 friendly round-up options", () => {
+    expect(getRoundingOptions("TWD").map((o) => o.step)).toEqual([0, 5, 10]);
+
+    const split = calculateSplit({
+      currency: "TWD",
+      items: [
+        {
+          id: "i1",
+          name: "Xiao Long Bao",
+          qty: 1,
+          unitPrice: 250,
+          totalPrice: 250,
+          assigneeIds: ["p1", "p2", "p3"],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 25,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(split.grandTotal).toBe(275);
+    expect(split.sumOfPeopleTotals).toBe(275);
+    expect(split.people.every((p) => Number.isInteger(p.total))).toBe(true);
+
+    const rounded10 = applyFriendlyRounding(split, 10);
+    expect(rounded10.split.people.every((p) => p.total === 100)).toBe(true);
+    expect(rounded10.split.sumOfPeopleTotals).toBe(300);
+    expect(rounded10.roundingSurplus).toBe(25);
+  });
 });

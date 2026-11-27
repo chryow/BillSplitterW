@@ -467,6 +467,13 @@ export function getRoundingOptions(currency: CurrencyCode): RoundingOption[] {
       { step: 100, label: "¥100" },
     ];
   }
+  if (currency === "TWD") {
+    return [
+      { step: 0, label: "Exact" },
+      { step: 5, label: "NT$5" },
+      { step: 10, label: "NT$10" },
+    ];
+  }
   return [
     { step: 0, label: "Exact" },
     { step: 0.5, label: "0.50" },

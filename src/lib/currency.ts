@@ -72,6 +72,16 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     symbolSpacing: false,
     flag: "🇯🇵",
   },
+  TWD: {
+    code: "TWD",
+    name: "New Taiwan Dollar",
+    symbol: "NT$",
+    decimals: 0,
+    thousandSeparator: ",",
+    decimalSeparator: ".",
+    symbolSpacing: false,
+    flag: "🇹🇼",
+  },
 };
 
 export const CURRENCY_LIST: CurrencyConfig[] = [
@@ -81,6 +91,7 @@ export const CURRENCY_LIST: CurrencyConfig[] = [
   CURRENCIES.MYR,
   CURRENCIES.EUR,
   CURRENCIES.JPY,
+  CURRENCIES.TWD,
 ];
 
 const MAX_SAFE_AMOUNT = 999_999_999;
@@ -113,6 +124,16 @@ export function normalizeCurrencyCode(
   if (upper === "RM") return "MYR";
   if (upper === "€") return "EUR";
   if (upper === "¥" || upper === "YEN") return "JPY";
+  if (
+    upper === "NT$" ||
+    upper === "NT" ||
+    upper === "NTD" ||
+    upper === "TW$" ||
+    upper === "新台幣" ||
+    upper === "台幣"
+  ) {
+    return "TWD";
+  }
   if (upper in CURRENCIES) return upper as CurrencyCode;
   return fallback;
 }

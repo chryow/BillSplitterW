@@ -17,6 +17,11 @@ describe("currency helpers", () => {
     expect(normalizeCurrencyCode("RM")).toBe("MYR");
     expect(normalizeCurrencyCode("€")).toBe("EUR");
     expect(normalizeCurrencyCode("¥")).toBe("JPY");
+    expect(normalizeCurrencyCode("NT$")).toBe("TWD");
+    expect(normalizeCurrencyCode("NTD")).toBe("TWD");
+    expect(normalizeCurrencyCode("TW$")).toBe("TWD");
+    expect(normalizeCurrencyCode("台幣")).toBe("TWD");
+    expect(normalizeCurrencyCode("新台幣")).toBe("TWD");
     expect(normalizeCurrencyCode(null, "IDR")).toBe("IDR");
     expect(normalizeCurrencyCode("UNKNOWN", "IDR")).toBe("IDR");
   });
@@ -32,19 +37,24 @@ describe("currency helpers", () => {
     expect(parseAmountInput("1,250", "USD")).toBe(1250);
   });
 
-  it("parses zero-decimal IDR inputs with dot or comma thousand separators", () => {
+  it("parses zero-decimal IDR and TWD inputs with thousand separators", () => {
     expect(parseAmountInput("45.000", "IDR")).toBe(45000);
     expect(parseAmountInput("45,000", "IDR")).toBe(45000);
     expect(parseAmountInput("1.250.000", "IDR")).toBe(1250000);
     expect(parseAmountInput("", "IDR")).toBe(0);
+    expect(parseAmountInput("1,250", "TWD")).toBe(1250);
+    expect(parseAmountInput("350", "TWD")).toBe(350);
   });
 
   it("formats currencies accurately and safely falls back on invalid codes", () => {
     expect(formatCurrency(45000, "IDR")).toBe("Rp 45.000");
     expect(formatCurrency(12.5, "USD")).toBe("$12.50");
     expect(formatCurrency(1200, "JPY")).toBe("¥1,200");
+    expect(formatCurrency(350, "TWD")).toBe("NT$350");
+    expect(formatCurrency(1250, "TWD")).toBe("NT$1,250");
     expect(getCurrencyConfig("INVALID").code).toBe("IDR");
     expect(roundForCurrency(12.567, "IDR")).toBe(13);
+    expect(roundForCurrency(12.567, "TWD")).toBe(13);
     expect(roundForCurrency(12.567, "USD")).toBe(12.57);
   });
 });

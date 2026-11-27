@@ -28,7 +28,14 @@ export function CurrencySheet({
       <div className="divide-y divide-[var(--border-subtle)] rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         {CURRENCY_LIST.map((cur) => {
           const active = cur.code === selected;
-          const preview = cur.decimals === 0 ? 45000 : 12.5;
+          const preview =
+            cur.code === "IDR"
+              ? 45000
+              : cur.code === "JPY"
+                ? 1200
+                : cur.code === "TWD"
+                  ? 350
+                  : 12.5;
           return (
             <button
               key={cur.code}

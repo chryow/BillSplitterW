@@ -19,7 +19,7 @@ A fast, minimalist, mobile-first Split Bill Web App (PWA) designed for everyday 
 - **Group Trips Mode (`Single Bill` | `Trips`):**
   - Combine multiple quick bills and AI-scanned/itemized restaurant receipts under one Trip crew and base currency.
   - Store optional receiving **Payment Info per member**, automatically simplify balances into the **minimum possible transfers**, track **Paid / Unpaid** transfers, nudge debtors on WhatsApp, export a **PNG Trip Card**, and share one read-only **`/trip/[slug]`** link with friends.
-- **Multi-Currency:** Default `IDR` (`Rp 45.000`, zero decimals) + quick switcher for `USD`, `SGD`, `MYR`, `EUR`, and `JPY` with live FX auto-detection & conversion on scanned receipts.
+- **Multi-Currency:** Default `IDR` (`Rp 45.000`, zero decimals) + quick switcher for `USD`, `SGD`, `MYR`, `EUR`, `JPY`, and `TWD` (`NT$350`) with live FX auto-detection & conversion on scanned receipts.
 - **Exact Math Engine (`src/lib/split-engine.ts` & `src/lib/trip-engine.ts`):** Minor-unit arithmetic with largest-remainder rounding guarantees individual totals and minimum transfers always net cleanly to exact zero.
 
 ---
