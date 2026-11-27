@@ -1,64 +1,108 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Editorial E-Ink Design System — Centralized Color & Typography Tokens
+   Default: Unbleached Paper (#F7F5F0) & Rich Ink (#1A1A18)
+   ========================================================================== */
+
 :root,
-[data-theme="dark"] {
-  --bg-app: #0a0d12;
-  --bg-surface: #12161f;
-  --bg-surface-2: #181e2a;
-  --bg-hover: #202838;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-soft: rgba(16, 185, 129, 0.14);
-  --accent-text: #34d399;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --warning-border: rgba(245, 158, 11, 0.28);
-  --warning-text: #fbbf24;
-  --danger-bg: rgba(244, 63, 94, 0.12);
-  --danger-border: rgba(244, 63, 94, 0.28);
-  --danger-text: #fb7185;
-  color-scheme: dark;
+[data-theme="light"] {
+  --bg-app: #f7f5f0;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #efece4;
+  --bg-hover: #e5e0d5;
+
+  --border-subtle: #d8d4ca;
+  --border-strong: #1a1a18;
+
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6963;
+  --text-muted: #6b6963;
+
+  --ink-solid: #1a1a18;
+  --ink-solid-hover: #2f2f2b;
+  --ink-on-solid: #f7f5f0;
+
+  /* Stamp Vermilion — primary CTA, active indicators, key totals, destructive */
+  --accent: #c83e2b;
+  --accent-hover: #a83222;
+  --accent-soft: rgba(200, 62, 43, 0.08);
+  --accent-text: #c83e2b;
+
+  /* Fountain Pen Green — settled, paid, exact match, positive balance */
+  --success: #234e3d;
+  --success-soft: rgba(35, 78, 61, 0.09);
+  --success-border: rgba(35, 78, 61, 0.4);
+  --success-text: #234e3d;
+
+  /* Warm Ochre Warning & Vermilion Danger */
+  --warning-bg: #efece4;
+  --warning-border: #1a1a18;
+  --warning-text: #8a4b14;
+  --danger-bg: rgba(200, 62, 43, 0.08);
+  --danger-border: #c83e2b;
+  --danger-text: #c83e2b;
+
+  --letterpress-shadow: 2px 2px 0px #1a1a18;
+  --backdrop-veil: rgba(26, 26, 24, 0.45);
+  color-scheme: light;
 }
 
-[data-theme="light"] {
-  --bg-app: #f3f5f8;
-  --bg-surface: #ffffff;
-  --bg-surface-2: #eef2f6;
-  --bg-hover: #e2e8f0;
-  --border-subtle: rgba(15, 23, 42, 0.08);
-  --border-strong: rgba(15, 23, 42, 0.16);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --accent: #059669;
-  --accent-hover: #047857;
-  --accent-soft: rgba(5, 150, 105, 0.12);
-  --accent-text: #047857;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --warning-border: rgba(217, 119, 6, 0.28);
-  --warning-text: #b45309;
-  --danger-bg: rgba(244, 63, 94, 0.1);
-  --danger-border: rgba(225, 29, 72, 0.24);
-  --danger-text: #be123c;
-  color-scheme: light;
+/* Inverted E-Ink Night theme (available via header theme toggle) */
+[data-theme="dark"] {
+  --bg-app: #161513;
+  --bg-surface: #1e1d1a;
+  --bg-surface-2: #272521;
+  --bg-hover: #322f2a;
+
+  --border-subtle: #3a3731;
+  --border-strong: #eae6dc;
+
+  --text-primary: #f2efe9;
+  --text-secondary: #a8a398;
+  --text-muted: #938e83;
+
+  --ink-solid: #f2efe9;
+  --ink-solid-hover: #ded8cc;
+  --ink-on-solid: #161513;
+
+  --accent: #d9533e;
+  --accent-hover: #c34330;
+  --accent-soft: rgba(217, 83, 62, 0.14);
+  --accent-text: #e66e5a;
+
+  --success: #5da386;
+  --success-soft: rgba(93, 163, 134, 0.14);
+  --success-border: rgba(93, 163, 134, 0.45);
+  --success-text: #6eb89a;
+
+  --warning-bg: #272521;
+  --warning-border: #c98b3e;
+  --warning-text: #e2ac63;
+  --danger-bg: rgba(217, 83, 62, 0.14);
+  --danger-border: #d9533e;
+  --danger-text: #e66e5a;
+
+  --letterpress-shadow: 2px 2px 0px #eae6dc;
+  --backdrop-veil: rgba(0, 0, 0, 0.65);
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--bg-app);
   --color-foreground: var(--text-primary);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
 }
 
 html,
 body {
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
@@ -68,11 +112,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Smooth slide-up sheet animation */
+.font-editorial {
+  font-family: var(--font-newsreader), Georgia, "Times New Roman", serif;
+}
+
+.micro-label {
+  font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
+  font-size: 10px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Tactile hard offset ONLY on active/selected interactive cards */
+.card-letterpress {
+  border-color: var(--border-strong);
+  box-shadow: var(--letterpress-shadow);
+}
+
+/* Snappy e-ink transitions (100ms–150ms ease-out) */
 @keyframes sheet-up {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -90,11 +153,11 @@ body {
 }
 
 .animate-sheet-up {
-  animation: sheet-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sheet-up 0.14s ease-out;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.18s ease-out;
+  animation: fade-in 0.12s ease-out;
 }
 
 /* Hide scrollbars cleanly for horizontal chip bars */

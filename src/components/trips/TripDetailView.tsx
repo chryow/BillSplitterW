@@ -251,16 +251,16 @@ export function TripDetailView({
   };
 
   return (
-    <section className="space-y-4 pt-3 pb-28">
-      {/* Top Trip Header Card */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+    <section className="space-y-4 pt-4 pb-6">
+      {/* Top Trip Header Ledger Card */}
+      <div className="rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
               onClick={onBackToList}
               aria-label="Back to Trips"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -279,7 +279,7 @@ export function TripDetailView({
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   onBlur={commitNameEdit}
-                  className="h-8 w-full rounded-lg border border-[var(--accent)] bg-[var(--bg-surface-2)] px-2 text-sm font-semibold text-[var(--text-primary)] focus:outline-none"
+                  className="h-8 w-full rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2 text-sm font-semibold text-[var(--text-primary)] focus:outline-none"
                 />
               </form>
             ) : (
@@ -291,7 +291,7 @@ export function TripDetailView({
                 }}
                 className="group flex min-w-0 items-center gap-1.5 text-left"
               >
-                <h1 className="truncate text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+                <h1 className="font-editorial truncate text-xl font-semibold tracking-tight text-[var(--text-primary)]">
                   {trip.name}
                 </h1>
                 <Pencil className="h-3 w-3 shrink-0 text-[var(--text-muted)] opacity-60 group-hover:opacity-100" />
@@ -300,10 +300,8 @@ export function TripDetailView({
           </div>
 
           <div className="shrink-0 text-right">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
-              Total Spend
-            </p>
-            <p className="font-mono text-base font-bold text-[var(--accent-text)] tabular-nums">
+            <p className="micro-label text-[var(--text-muted)]">Total Spend</p>
+            <p className="mt-0.5 font-mono text-base font-bold text-[var(--accent-text)] tabular-nums">
               {formatCurrency(calc.totalSpend, cur)}
             </p>
           </div>
@@ -315,7 +313,7 @@ export function TripDetailView({
             {trip.members.map((m) => (
               <span
                 key={m.id}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                className="inline-flex shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-primary)]"
               >
                 <span
                   className="h-1.5 w-1.5 rounded-full"
@@ -329,17 +327,17 @@ export function TripDetailView({
           <button
             type="button"
             onClick={() => setMembersSheetOpen(true)}
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
-            <Users className="h-3 w-3 text-[var(--accent-text)]" />
+            <Users className="h-3 w-3" />
             Crew &amp; Pay
           </button>
         </div>
       </div>
 
-      {/* 3 Compact Tabs: Bills | Balances | Settle Up */}
+      {/* 3 Compact Ledger Tabs: Bills | Balances | Settle Up */}
       <div
-        className="grid grid-cols-3 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1"
+        className="grid grid-cols-3 gap-1 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1"
         role="tablist"
       >
         {(
@@ -363,10 +361,10 @@ export function TripDetailView({
               role="tab"
               aria-selected={active}
               onClick={() => setTab(item.id)}
-              className={`min-h-[36px] rounded-lg px-2 text-xs font-semibold transition-colors ${
+              className={`min-h-[34px] rounded-[2px] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
                 active
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-2)] hover:text-[var(--text-primary)]"
               }`}
             >
               {item.label}
@@ -379,9 +377,9 @@ export function TripDetailView({
       {tab === "bills" && (
         <div className="space-y-2.5">
           {trip.expenses.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] p-7 text-center">
-              <Receipt className="mx-auto h-7 w-7 text-[var(--text-muted)]" />
-              <p className="mt-2.5 text-sm font-semibold text-[var(--text-primary)]">
+            <div className="rounded-[3px] border border-dashed border-[var(--border-subtle)] bg-[var(--bg-surface)] p-7 text-center">
+              <Receipt className="mx-auto h-6 w-6 text-[var(--text-muted)]" />
+              <p className="mt-2.5 font-editorial text-base font-semibold text-[var(--text-primary)]">
                 No bills in this trip yet
               </p>
               <p className="mt-1 text-xs text-[var(--text-secondary)]">
@@ -393,150 +391,161 @@ export function TripDetailView({
                 onClick={() =>
                   setExpenseSheet({ open: true, editing: null, mode: "quick" })
                 }
-                className="mt-4 inline-flex min-h-[42px] items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
+                className="mt-4 inline-flex min-h-[40px] items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
               >
                 <Plus className="h-4 w-4" />
                 Add First Bill
               </button>
             </div>
           ) : (
-            trip.expenses.map((expense) => {
-              const summary = calc.expenseSummaries[expense.id];
-              const payer = memberById.get(expense.paidByMemberId);
-              const splitMemberIds = Object.keys(summary?.sharesByMemberId ?? {});
-              const assigneeLabel =
-                expense.mode === "itemized"
-                  ? `${expense.items?.length ?? 0} items · itemized`
-                  : splitMemberIds.length === trip.members.length
-                    ? "Split equally (all)"
-                    : splitMemberIds
-                        .map((id) => memberById.get(id)?.name)
-                        .filter(Boolean)
-                        .join(", ") || "Unassigned";
+            <div className="divide-y divide-[var(--border-subtle)] rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              {trip.expenses.map((expense) => {
+                const summary = calc.expenseSummaries[expense.id];
+                const payer = memberById.get(expense.paidByMemberId);
+                const splitMemberIds = Object.keys(
+                  summary?.sharesByMemberId ?? {}
+                );
+                const assigneeLabel =
+                  expense.mode === "itemized"
+                    ? `${expense.items?.length ?? 0} items · itemized`
+                    : splitMemberIds.length === trip.members.length
+                      ? "Split equally (all)"
+                      : splitMemberIds
+                          .map((id) => memberById.get(id)?.name)
+                          .filter(Boolean)
+                          .join(", ") || "Unassigned";
 
-              return (
-                <div
-                  key={expense.id}
-                  className="flex items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 transition-colors hover:border-[var(--border-strong)]"
-                >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-surface-2)] text-[var(--accent-text)]">
-                    <CategoryIcon category={expense.category} />
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpenseSheet({
-                        open: true,
-                        editing: expense,
-                        mode: expense.mode,
-                      })
-                    }
-                    className="min-w-0 flex-1 text-left"
+                return (
+                  <div
+                    key={expense.id}
+                    className="flex items-center gap-3 p-3.5 transition-colors duration-150 ease-out hover:bg-[var(--bg-surface-2)]/60"
                   >
-                    <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                      {expense.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-secondary)]">
-                      Paid by{" "}
-                      <strong className="text-[var(--text-primary)]">
-                        {payer?.name ?? "Unknown"}
-                      </strong>{" "}
-                      · {assigneeLabel}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-                      {expense.date}
-                    </p>
-                  </button>
-
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="font-mono text-sm font-bold text-[var(--text-primary)] tabular-nums">
-                      {formatCurrency(summary?.total ?? expense.amount, cur)}
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)]">
+                      <CategoryIcon category={expense.category} />
                     </span>
+
                     <button
                       type="button"
-                      onClick={() => onDeleteExpenseWithUndo(expense.id)}
-                      aria-label={`Delete ${expense.title}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
+                      onClick={() =>
+                        setExpenseSheet({
+                          open: true,
+                          editing: expense,
+                          mode: expense.mode,
+                        })
+                      }
+                      className="min-w-0 flex-1 text-left"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {expense.title}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
+                        Paid by{" "}
+                        <strong className="text-[var(--text-primary)]">
+                          {payer?.name ?? "Unknown"}
+                        </strong>{" "}
+                        &middot; {assigneeLabel}
+                      </p>
+                      <p className="mt-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+                        {expense.date}
+                      </p>
                     </button>
+
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="font-mono text-sm font-bold text-[var(--text-primary)] tabular-nums">
+                        {formatCurrency(summary?.total ?? expense.amount, cur)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteExpenseWithUndo(expense.id)}
+                        aria-label={`Delete ${expense.title}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-[2px] text-[var(--text-muted)] transition-colors duration-150 ease-out hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       )}
 
       {/* TAB 2: BALANCES */}
       {tab === "balances" && (
-        <div className="space-y-2.5">
-          {calc.balances.map((bal) => {
-            const hasPay = hasPaymentInfo(bal.paymentInfo);
-            return (
-              <div
-                key={bal.memberId}
-                className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
+        <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3.5 py-2">
+            <span className="micro-label font-semibold text-[var(--text-primary)]">
+              Member
+            </span>
+            <span className="micro-label font-semibold text-[var(--text-primary)]">
+              Net Balance
+            </span>
+          </div>
+          <div className="divide-y divide-[var(--border-subtle)]">
+            {calc.balances.map((bal) => {
+              const hasPay = hasPaymentInfo(bal.paymentInfo);
+              return (
+                <div key={bal.memberId} className="p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: bal.color }}
+                      />
+                      <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {bal.name}
+                      </span>
+                    </div>
                     <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: bal.color }}
-                    />
-                    <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                      {bal.name}
+                      className={`shrink-0 font-mono text-sm font-bold tabular-nums ${
+                        bal.netBalance > 0
+                          ? "text-[var(--success-text)]"
+                          : bal.netBalance < 0
+                            ? "text-[var(--accent-text)]"
+                            : "text-[var(--text-muted)]"
+                      }`}
+                    >
+                      {bal.netBalance > 0
+                        ? `+${formatCurrency(bal.netBalance, cur)}`
+                        : formatCurrency(bal.netBalance, cur)}
                     </span>
                   </div>
-                  <span
-                    className={`shrink-0 font-mono text-sm font-bold tabular-nums ${
-                      bal.netBalance > 0
-                        ? "text-[var(--accent-text)]"
+
+                  <div className="mt-1.5 flex items-center justify-between font-mono text-[11px] text-[var(--text-secondary)]">
+                    <span>
+                      PAID{" "}
+                      <strong className="text-[var(--text-primary)] tabular-nums">
+                        {formatCurrency(bal.totalPaid, cur)}
+                      </strong>{" "}
+                      &middot; SHARE{" "}
+                      <strong className="text-[var(--text-primary)] tabular-nums">
+                        {formatCurrency(bal.totalShare, cur)}
+                      </strong>
+                    </span>
+                    <span className="micro-label text-[var(--text-muted)]">
+                      {bal.netBalance > 0
+                        ? "Gets back"
                         : bal.netBalance < 0
-                          ? "text-[var(--warning-text)]"
-                          : "text-[var(--text-muted)]"
-                    }`}
-                  >
-                    {bal.netBalance > 0
-                      ? `+${formatCurrency(bal.netBalance, cur)}`
-                      : formatCurrency(bal.netBalance, cur)}
-                  </span>
-                </div>
+                          ? "Owes"
+                          : "Settled"}
+                    </span>
+                  </div>
 
-                <div className="mt-2 flex items-center justify-between border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-secondary)]">
-                  <span>
-                    Paid{" "}
-                    <strong className="font-mono text-[var(--text-primary)] tabular-nums">
-                      {formatCurrency(bal.totalPaid, cur)}
-                    </strong>{" "}
-                    · Share{" "}
-                    <strong className="font-mono text-[var(--text-primary)] tabular-nums">
-                      {formatCurrency(bal.totalShare, cur)}
-                    </strong>
-                  </span>
-                  <span className="text-[10px] text-[var(--text-muted)]">
-                    {bal.netBalance > 0
-                      ? "Gets back"
-                      : bal.netBalance < 0
-                        ? "Owes"
-                        : "Settled"}
-                  </span>
+                  {bal.netBalance > 0 && !hasPay && (
+                    <button
+                      type="button"
+                      onClick={() => setMembersSheetOpen(true)}
+                      className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-text)] hover:underline"
+                    >
+                      <Wallet className="h-3 w-3" />
+                      Add {bal.name}&apos;s bank / e-wallet
+                    </button>
+                  )}
                 </div>
-
-                {bal.netBalance > 0 && !hasPay && (
-                  <button
-                    type="button"
-                    onClick={() => setMembersSheetOpen(true)}
-                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent-text)] hover:opacity-85"
-                  >
-                    <Wallet className="h-3 w-3" />
-                    Add {bal.name}&apos;s bank / e-wallet so friends can pay
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -544,28 +553,28 @@ export function TripDetailView({
       {tab === "settle" && (
         <div className="space-y-3.5">
           <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <h2 className="micro-label font-semibold text-[var(--text-muted)]">
               Minimum Transfers ({calc.transfers.length})
             </h2>
             <button
               type="button"
               disabled={exportingImage}
               onClick={handleSaveTripImage}
-              className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-50"
+              className="inline-flex h-7 items-center gap-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)] disabled:opacity-50"
             >
               {exportingImage ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <ImageDown className="h-3 w-3 text-[var(--accent-text)]" />
+                <ImageDown className="h-3 w-3" />
               )}
               Save Card
             </button>
           </div>
 
           {calc.transfers.length === 0 ? (
-            <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-soft)] p-5 text-center">
-              <CheckCircle2 className="mx-auto h-6 w-6 text-[var(--accent-text)]" />
-              <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">
+            <div className="rounded-[3px] border border-[var(--success-border)] bg-[var(--success-soft)] p-5 text-center">
+              <CheckCircle2 className="mx-auto h-5 w-5 text-[var(--success-text)]" />
+              <p className="mt-2 font-editorial text-base font-semibold text-[var(--text-primary)]">
                 Everyone is completely settled!
               </p>
               <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
@@ -583,22 +592,22 @@ export function TripDetailView({
                 return (
                   <article
                     key={transfer.key}
-                    className={`rounded-2xl border p-3.5 transition-colors ${
+                    className={`rounded-[3px] border bg-[var(--bg-surface)] p-3.5 transition-colors duration-150 ease-out ${
                       isSettled
-                        ? "border-[var(--accent)]/35 bg-[var(--bg-surface)]/80"
-                        : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+                        ? "border-[var(--success-border)] bg-[var(--bg-surface-2)]/40"
+                        : "border-[var(--border-subtle)]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
                         <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: transfer.fromColor }}
                         />
                         <span className="truncate">{transfer.fromName}</span>
                         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
                         <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          className="h-2 w-2 shrink-0 rounded-full"
                           style={{ backgroundColor: transfer.toColor }}
                         />
                         <span className="truncate">{transfer.toName}</span>
@@ -606,21 +615,23 @@ export function TripDetailView({
 
                       <button
                         type="button"
-                        onClick={() => handleToggleTransferSettled(transfer.key)}
-                        className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
+                        onClick={() =>
+                          handleToggleTransferSettled(transfer.key)
+                        }
+                        className={`inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
                           isSettled
-                            ? "border-[var(--accent)]/45 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                            : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success-text)]"
+                            : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                         }`}
                       >
                         {isSettled ? (
                           <>
-                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <CheckCircle2 className="h-3 w-3" />
                             Paid
                           </>
                         ) : (
                           <>
-                            <Circle className="h-3.5 w-3.5" />
+                            <Circle className="h-3 w-3" />
                             Unpaid
                           </>
                         )}
@@ -642,7 +653,7 @@ export function TripDetailView({
                         <button
                           type="button"
                           onClick={() => handleNudgeTransfer(transfer)}
-                          className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2.5 text-[11px] font-semibold text-[var(--accent-text)] hover:opacity-90"
+                          className="inline-flex h-7 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-on-solid)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid-hover)]"
                         >
                           <Send className="h-3 w-3" />
                           Nudge {transfer.fromName}
@@ -652,7 +663,7 @@ export function TripDetailView({
 
                     {/* Creditor's per-member payment info */}
                     {hasPay && payInfo ? (
-                      <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
+                      <div className="mt-2.5 flex items-center justify-between gap-2 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
                         <div className="min-w-0">
                           <p className="truncate font-mono text-xs font-semibold text-[var(--text-primary)]">
                             {[payInfo.provider, payInfo.accountNumber]
@@ -660,7 +671,7 @@ export function TripDetailView({
                               .join(" · ")}
                           </p>
                           {payInfo.accountName && (
-                            <p className="truncate text-[10px] text-[var(--text-muted)]">
+                            <p className="truncate text-[11px] text-[var(--text-muted)]">
                               a/n {payInfo.accountName}
                             </p>
                           )}
@@ -669,11 +680,11 @@ export function TripDetailView({
                           <button
                             type="button"
                             onClick={() => handleCopyTransferAccount(transfer)}
-                            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
                           >
                             {copiedId === `acct-${transfer.key}` ? (
                               <>
-                                <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                                <Check className="h-3 w-3 text-[var(--success-text)]" />
                                 Copied
                               </>
                             ) : (
@@ -689,7 +700,7 @@ export function TripDetailView({
                       <button
                         type="button"
                         onClick={() => setMembersSheetOpen(true)}
-                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
+                        className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)] hover:text-[var(--accent-text)]"
                       >
                         <Wallet className="h-3 w-3" />
                         Add {transfer.toName}&apos;s bank / e-wallet
@@ -703,13 +714,13 @@ export function TripDetailView({
 
           {/* Save Trip & Public Share Link Card */}
           {supabaseEnabled && (
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
+            <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
               {isSignedIn ? (
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {trip.savedTripId ? (
-                        <CloudCheck className="h-4 w-4 text-[var(--accent-text)]" />
+                        <CloudCheck className="h-4 w-4 text-[var(--success-text)]" />
                       ) : (
                         <Globe className="h-4 w-4 text-[var(--text-secondary)]" />
                       )}
@@ -725,11 +736,11 @@ export function TripDetailView({
                         <button
                           type="button"
                           onClick={() => onToggleTripPublic(!trip.isPublic)}
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          className="inline-flex h-8 items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                         >
                           {trip.isPublic ? (
                             <>
-                              <Globe className="h-3 w-3 text-[var(--accent-text)]" />
+                              <Globe className="h-3 w-3 text-[var(--success-text)]" />
                               Public
                             </>
                           ) : (
@@ -744,7 +755,7 @@ export function TripDetailView({
                         type="button"
                         disabled={savingTrip}
                         onClick={onSaveTripToCloud}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-60"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)] disabled:opacity-60"
                       >
                         {savingTrip ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -757,19 +768,19 @@ export function TripDetailView({
                   </div>
 
                   {shareUrl && (
-                    <div className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
-                      <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--accent-text)]" />
+                    <div className="flex items-center gap-2 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
+                      <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                       <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text-secondary)]">
                         {shareUrl}
                       </span>
                       <button
                         type="button"
                         onClick={handleCopyShareLink}
-                        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                        className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
                       >
                         {copiedId === "link" ? (
                           <>
-                            <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                            <Check className="h-3 w-3 text-[var(--success-text)]" />
                             Copied
                           </>
                         ) : (
@@ -793,9 +804,9 @@ export function TripDetailView({
                   <button
                     type="button"
                     onClick={onOpenAccount}
-                    className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
                   >
-                    <UserCheck className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+                    <UserCheck className="h-3.5 w-3.5" />
                     Sign in
                   </button>
                 </div>
@@ -806,19 +817,19 @@ export function TripDetailView({
       )}
 
       {/* Sticky Bottom Action Bar (context-aware per tab) */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/95 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-md items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-strong)] bg-[var(--bg-app)]">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {tab === "settle" ? (
             <>
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
               >
                 {copiedId === "summary" ? (
                   <>
                     <Check className="h-4 w-4" />
-                    <span>Copied Trip Summary!</span>
+                    <span>Copied Summary!</span>
                   </>
                 ) : (
                   <>
@@ -830,7 +841,7 @@ export function TripDetailView({
               <button
                 type="button"
                 onClick={handleOpenWhatsApp}
-                className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-4 text-xs font-semibold text-[var(--accent-text)] hover:opacity-90"
+                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[3px] border border-[var(--success)] bg-[var(--success-soft)] px-4 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--success-text)] transition-colors duration-150 ease-out hover:bg-[var(--success)] hover:text-[#F7F5F0]"
               >
                 <MessageCircle className="h-4 w-4" />
                 <span>WhatsApp</span>
@@ -843,7 +854,7 @@ export function TripDetailView({
                 onClick={() =>
                   setExpenseSheet({ open: true, editing: null, mode: "quick" })
                 }
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
               >
                 <Plus className="h-4 w-4" />
                 <span>Add Bill</span>
@@ -857,9 +868,9 @@ export function TripDetailView({
                     mode: "itemized",
                   })
                 }
-                className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
               >
-                <Camera className="h-4 w-4 text-[var(--accent-text)]" />
+                <Camera className="h-4 w-4" />
                 <span>Itemized / Scan</span>
               </button>
             </>

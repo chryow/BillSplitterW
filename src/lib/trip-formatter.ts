@@ -1,4 +1,5 @@
 import { formatCurrency } from "./currency";
+import { EDITORIAL_THEME } from "./theme";
 import type { Trip, TripCalculationResult, TripTransfer } from "./types";
 import { hasPaymentInfo } from "./whatsapp-formatter";
 
@@ -138,13 +139,14 @@ function truncateText(
 }
 
 /**
- * Exports a crisp 2x dark-mode PNG Trip Settlement Card (Web Share on mobile, download on desktop).
+ * Exports a crisp 2x Editorial E-Ink PNG Trip Settlement Card (Web Share on mobile, download on desktop).
  */
 export async function shareOrDownloadTripCardImage(options: {
   trip: Trip;
   calc: TripCalculationResult;
 }): Promise<"shared" | "downloaded"> {
   const { trip, calc } = options;
+  const { colors, fonts } = EDITORIAL_THEME;
   const cur = calc.currency;
   const settledSet = new Set(trip.settledTransferKeys);
 
@@ -160,7 +162,7 @@ export async function shareOrDownloadTripCardImage(options: {
       ? 26 + transferRowHeights.reduce((sum, h) => sum + h + 8, 0)
       : 54;
   const balancesH = 26 + calc.balances.length * 34 + 14;
-  const footerH = 40;
+  const footerH = 42;
   const totalHeight =
     pad + headerH + 14 + transfersH + 12 + balancesH + footerH + pad;
 
@@ -173,36 +175,36 @@ export async function shareOrDownloadTripCardImage(options: {
   if (!ctx) throw new Error("Canvas unavailable.");
 
   ctx.scale(scale, scale);
-  ctx.fillStyle = "#0A0D12";
+  ctx.fillStyle = colors.paper;
   ctx.fillRect(0, 0, width, totalHeight);
 
-  const sans =
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+  const serif = fonts.serif;
+  const sans = fonts.sans;
+  const mono = fonts.mono;
 
   const innerX = pad + cardPad;
   const rightX = width - pad - cardPad;
   let y = pad;
 
   // Header
-  drawRoundedRect(ctx, pad, y, width - pad * 2, headerH, 16);
-  ctx.fillStyle = "#12161F";
+  drawRoundedRect(ctx, pad, y, width - pad * 2, headerH, 3);
+  ctx.fillStyle = colors.surface;
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.09)";
+  ctx.strokeStyle = colors.ink;
   ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.textAlign = "left";
-  ctx.font = `600 11px ${sans}`;
-  ctx.fillStyle = "#34D399";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.fillText(
-    `TRIP SUMMARY  ·  ${trip.expenses.length} BILL${trip.expenses.length === 1 ? "" : "S"}`,
+    `TRIP LEDGER  ·  ${trip.expenses.length} BILL${trip.expenses.length === 1 ? "" : "S"}`,
     innerX,
     y + 24
   );
 
-  ctx.font = `700 20px ${sans}`;
-  ctx.fillStyle = "#F8FAFC";
+  ctx.font = `600 21px ${serif}`;
+  ctx.fillStyle = colors.ink;
   ctx.fillText(
     truncateText(ctx, trip.name, width - pad * 2 - 145),
     innerX,
@@ -210,17 +212,17 @@ export async function shareOrDownloadTripCardImage(options: {
   );
 
   ctx.textAlign = "right";
-  ctx.font = `500 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.fillText("TOTAL SPEND", rightX, y + 24);
 
   ctx.font = `700 18px ${mono}`;
-  ctx.fillStyle = "#34D399";
+  ctx.fillStyle = colors.vermilion;
   ctx.fillText(formatCurrency(calc.totalSpend, cur), rightX, y + 54);
 
   ctx.textAlign = "left";
   ctx.font = `400 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.fillStyle = colors.graphite;
   ctx.fillText(
     truncateText(
       ctx,
@@ -234,36 +236,36 @@ export async function shareOrDownloadTripCardImage(options: {
   y += headerH + 16;
 
   // Transfers
-  ctx.font = `600 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.fillText("SETTLE UP (MINIMUM TRANSFERS)", pad + 2, y + 12);
   y += 22;
 
   if (calc.transfers.length === 0) {
-    drawRoundedRect(ctx, pad, y, width - pad * 2, 42, 12);
-    ctx.fillStyle = "#12161F";
+    drawRoundedRect(ctx, pad, y, width - pad * 2, 42, 3);
+    ctx.fillStyle = colors.surface;
     ctx.fill();
+    ctx.strokeStyle = colors.fountainGreen;
+    ctx.stroke();
     ctx.textAlign = "center";
-    ctx.font = `600 13px ${sans}`;
-    ctx.fillStyle = "#34D399";
-    ctx.fillText("Everyone is settled up ✓", width / 2, y + 26);
+    ctx.font = `600 12px ${mono}`;
+    ctx.fillStyle = colors.fountainGreen;
+    ctx.fillText("EVERYONE IS SETTLED UP ✓", width / 2, y + 25);
     y += 50;
   } else {
     calc.transfers.forEach((transfer, idx) => {
       const h = transferRowHeights[idx];
       const settled = settledSet.has(transfer.key);
-      drawRoundedRect(ctx, pad, y, width - pad * 2, h, 14);
-      ctx.fillStyle = "#12161F";
+      drawRoundedRect(ctx, pad, y, width - pad * 2, h, 3);
+      ctx.fillStyle = settled ? colors.pressedPaper : colors.surface;
       ctx.fill();
-      ctx.strokeStyle = settled
-        ? "rgba(16,185,129,0.35)"
-        : "rgba(255,255,255,0.08)";
+      ctx.strokeStyle = settled ? colors.fountainGreen : colors.hairline;
       ctx.lineWidth = 1;
       ctx.stroke();
 
       ctx.textAlign = "left";
       ctx.font = `600 13px ${sans}`;
-      ctx.fillStyle = "#F8FAFC";
+      ctx.fillStyle = colors.ink;
       ctx.fillText(
         truncateText(
           ctx,
@@ -276,7 +278,7 @@ export async function shareOrDownloadTripCardImage(options: {
 
       ctx.textAlign = "right";
       ctx.font = `700 14px ${mono}`;
-      ctx.fillStyle = settled ? "#64748B" : "#34D399";
+      ctx.fillStyle = settled ? colors.fountainGreen : colors.vermilion;
       ctx.fillText(formatCurrency(transfer.amount, cur), rightX, y + 27);
 
       if (hasPaymentInfo(transfer.toPaymentInfo) && transfer.toPaymentInfo) {
@@ -291,7 +293,7 @@ export async function shareOrDownloadTripCardImage(options: {
           .join(" · ");
         ctx.textAlign = "left";
         ctx.font = `400 11px ${mono}`;
-        ctx.fillStyle = "#94A3B8";
+        ctx.fillStyle = colors.graphite;
         ctx.fillText(truncateText(ctx, acct, rightX - innerX), innerX, y + 48);
       }
 
@@ -303,20 +305,28 @@ export async function shareOrDownloadTripCardImage(options: {
 
   // Member balances summary box
   ctx.textAlign = "left";
-  ctx.font = `600 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.fillText("MEMBER BALANCES", pad + 2, y + 12);
   y += 22;
 
   const boxH = calc.balances.length * 34 + 12;
-  drawRoundedRect(ctx, pad, y, width - pad * 2, boxH, 14);
-  ctx.fillStyle = "#12161F";
+  drawRoundedRect(ctx, pad, y, width - pad * 2, boxH, 3);
+  ctx.fillStyle = colors.surface;
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.strokeStyle = colors.hairline;
   ctx.stroke();
 
   let rowY = y + 26;
-  for (const bal of calc.balances) {
+  calc.balances.forEach((bal, idx) => {
+    if (idx > 0) {
+      ctx.strokeStyle = colors.hairline;
+      ctx.beginPath();
+      ctx.moveTo(innerX, rowY - 19);
+      ctx.lineTo(rightX, rowY - 19);
+      ctx.stroke();
+    }
+
     ctx.beginPath();
     ctx.arc(innerX + 4, rowY - 4, 4, 0, Math.PI * 2);
     ctx.fillStyle = bal.color;
@@ -324,27 +334,42 @@ export async function shareOrDownloadTripCardImage(options: {
 
     ctx.textAlign = "left";
     ctx.font = `600 12px ${sans}`;
-    ctx.fillStyle = "#F8FAFC";
+    ctx.fillStyle = colors.ink;
     ctx.fillText(truncateText(ctx, bal.name, 130), innerX + 16, rowY);
 
     ctx.textAlign = "right";
     ctx.font = `600 12px ${mono}`;
     ctx.fillStyle =
       bal.netBalance > 0
-        ? "#34D399"
+        ? colors.fountainGreen
         : bal.netBalance < 0
-          ? "#FBBF24"
-          : "#94A3B8";
+          ? colors.vermilion
+          : colors.graphite;
     const sign = bal.netBalance > 0 ? "+" : "";
     ctx.fillText(`${sign}${formatCurrency(bal.netBalance, cur)}`, rightX, rowY);
     rowY += 34;
-  }
+  });
 
-  y += boxH + 8;
-  ctx.textAlign = "center";
-  ctx.font = `500 11px ${sans}`;
-  ctx.fillStyle = "#64748B";
-  ctx.fillText("Split with BillSplitterW", width / 2, y + 22);
+  y += boxH + 10;
+  ctx.strokeStyle = colors.hairline;
+  ctx.beginPath();
+  ctx.moveTo(pad, y + 4);
+  ctx.lineTo(width - pad, y + 4);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.font = `500 9.5px ${mono}`;
+  ctx.fillStyle = colors.graphite;
+  ctx.fillText(
+    `BILLSPLITTERW · ${EDITORIAL_THEME.version.toUpperCase()}`,
+    pad,
+    y + 23
+  );
+
+  ctx.textAlign = "right";
+  ctx.fillText(EDITORIAL_THEME.colophonLabel, width - pad - 10, y + 23);
+  ctx.fillStyle = colors.vermilion;
+  ctx.fillRect(width - pad - 5, y + 17, 5, 5);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((out) => {

@@ -211,74 +211,72 @@ export function SummaryStep({
   };
 
   return (
-    <section className="space-y-4 pt-3 pb-28">
-      {/* Bill Grand Total + Settlement Progress + Round-Up Selector */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
+    <section className="space-y-4 pt-4 pb-6">
+      {/* Printed Receipt Summary Header */}
+      <div className="rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Final Split
-            </p>
-            <h1 className="mt-0.5 truncate text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+            <p className="micro-label text-[var(--text-muted)]">Final Split</p>
+            <h1 className="font-editorial mt-0.5 truncate text-xl font-semibold tracking-tight text-[var(--text-primary)]">
               {bill.merchantName.trim() || "Split Bill"}
             </h1>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-[11px] text-[var(--text-muted)]">Grand Total</p>
-            <p className="font-mono text-lg font-semibold text-[var(--accent-text)] tabular-nums">
+            <p className="micro-label text-[var(--text-muted)]">Grand Total</p>
+            <p className="mt-0.5 font-mono text-lg font-bold text-[var(--accent-text)] tabular-nums">
               {formatCurrency(split.grandTotal, cur)}
             </p>
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-[11px] text-[var(--text-secondary)]">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2.5 font-mono text-[11px] text-[var(--text-secondary)]">
           <span>
-            Items:{" "}
-            <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+            ITEMS{" "}
+            <strong className="text-[var(--text-primary)] tabular-nums">
               {formatCurrency(split.itemsSubtotal, cur)}
             </strong>
           </span>
           {split.tax > 0 && (
             <span>
-              Tax:{" "}
-              <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+              TAX{" "}
+              <strong className="text-[var(--text-primary)] tabular-nums">
                 {formatCurrency(split.tax, cur)}
               </strong>
             </span>
           )}
           {split.serviceCharge > 0 && (
             <span>
-              Svc:{" "}
-              <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+              SVC{" "}
+              <strong className="text-[var(--text-primary)] tabular-nums">
                 {formatCurrency(split.serviceCharge, cur)}
               </strong>
             </span>
           )}
           {split.deliveryFee > 0 && (
             <span>
-              Delivery:{" "}
-              <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+              DELIV{" "}
+              <strong className="text-[var(--text-primary)] tabular-nums">
                 {formatCurrency(split.deliveryFee, cur)}
               </strong>
             </span>
           )}
           {split.discount > 0 && (
             <span>
-              Disc:{" "}
-              <strong className="font-mono text-[var(--accent-text)] tabular-nums">
+              DISC{" "}
+              <strong className="text-[var(--success-text)] tabular-nums">
                 -{formatCurrency(split.discount, cur)}
               </strong>
             </span>
           )}
         </div>
 
-        {/* Friendly Round-Up Pills + Save PNG Card */}
+        {/* Friendly Round-Up Selector + Save PNG Receipt */}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2.5">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-medium text-[var(--text-muted)]">
-              Round up:
+            <span className="micro-label text-[var(--text-muted)]">
+              Round up
             </span>
-            <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-0.5">
+            <div className="inline-flex rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-0.5">
               {roundingOptions.map((opt) => {
                 const active = activeRoundingStep === opt.step;
                 return (
@@ -286,9 +284,9 @@ export function SummaryStep({
                     key={opt.step}
                     type="button"
                     onClick={() => setRoundingStep(opt.step)}
-                    className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors ${
+                    className={`rounded-[2px] px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors duration-150 ease-out ${
                       active
-                        ? "bg-[var(--accent)] text-white"
+                        ? "bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
                         : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                   >
@@ -303,12 +301,12 @@ export function SummaryStep({
             type="button"
             disabled={exportingImage}
             onClick={handleSaveCardImage}
-            className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+            className="inline-flex h-7 items-center gap-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)] disabled:opacity-50"
           >
             {exportingImage ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
-              <ImageDown className="h-3 w-3 text-[var(--accent-text)]" />
+              <ImageDown className="h-3 w-3" />
             )}
             Save Card
           </button>
@@ -318,8 +316,8 @@ export function SummaryStep({
         {bill.participants.length > 1 && (
           <div className="mt-3 space-y-2 border-t border-[var(--border-subtle)] pt-2.5">
             <div className="flex items-center gap-2">
-              <span className="shrink-0 text-[11px] font-medium text-[var(--text-muted)]">
-                Paid by:
+              <span className="micro-label shrink-0 text-[var(--text-muted)]">
+                Paid by
               </span>
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 {bill.participants.map((person) => {
@@ -329,14 +327,16 @@ export function SummaryStep({
                       key={person.id}
                       type="button"
                       onClick={() => onChangePaidBy(person.id)}
-                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-[2px] border px-2 py-0.5 text-[11px] font-semibold transition-colors duration-150 ease-out ${
                         isPayer
-                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       <span
-                        className="h-1.5 w-1.5 rounded-full"
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isPayer ? "ring-1 ring-[var(--ink-on-solid)]/60" : ""
+                        }`}
                         style={{ backgroundColor: person.color }}
                       />
                       {person.name}
@@ -347,24 +347,27 @@ export function SummaryStep({
             </div>
 
             {settlement.collectibleCount > 0 && (
-              <div className="flex items-center justify-between text-[11px]">
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-[var(--text-secondary)]">
                   {settlement.unsettledCount === 0 ? (
-                    <span className="font-semibold text-[var(--accent-text)]">
+                    <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--success-text)]">
                       All settled ✓
                     </span>
                   ) : (
                     <>
                       Remaining
-                      {settlement.payerName ? ` to ${settlement.payerName}` : ""}:{" "}
+                      {settlement.payerName
+                        ? ` to ${settlement.payerName}`
+                        : ""}
+                      :{" "}
                       <strong className="font-mono text-[var(--text-primary)] tabular-nums">
                         {formatCurrency(settlement.totalRemaining, cur)}
                       </strong>
                     </>
                   )}
                 </span>
-                <span className="font-mono text-[var(--text-muted)] tabular-nums">
-                  {settlement.settledCount}/{settlement.collectibleCount} paid
+                <span className="font-mono text-[11px] text-[var(--text-muted)] tabular-nums">
+                  {settlement.settledCount}/{settlement.collectibleCount} PAID
                 </span>
               </div>
             )}
@@ -383,7 +386,7 @@ export function SummaryStep({
         />
       )}
 
-      {/* Per-Person Breakdown Cards with Paid/Unpaid + Individual Nudge */}
+      {/* Per-Person Ledger Cards */}
       <div className="space-y-2.5">
         {split.people.map((person) => {
           const isPayer = bill.paidByParticipantId === person.participantId;
@@ -393,29 +396,29 @@ export function SummaryStep({
           return (
             <article
               key={person.participantId}
-              className={`rounded-2xl border p-3.5 transition-colors ${
+              className={`rounded-[3px] border bg-[var(--bg-surface)] p-3.5 transition-colors duration-150 ease-out ${
                 isSettled
-                  ? "border-[var(--accent)]/35 bg-[var(--bg-surface)]/80"
-                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+                  ? "border-[var(--success-border)] bg-[var(--bg-surface-2)]/40"
+                  : "border-[var(--border-subtle)]"
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: person.color }}
                   />
                   <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
                     {person.name}
                   </h2>
                   {isPayer && (
-                    <span className="shrink-0 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                    <span className="shrink-0 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--text-secondary)]">
                       Paid bill
                     </span>
                   )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-2">
                   <span
                     className={`font-mono text-base font-bold tabular-nums ${
                       isSettled
@@ -436,20 +439,20 @@ export function SummaryStep({
                           ? `Mark ${person.name} as unpaid`
                           : `Mark ${person.name} as paid`
                       }
-                      className={`inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
+                      className={`inline-flex h-7 items-center gap-1 rounded-[2px] border px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
                         isSettled
-                          ? "border-[var(--accent)]/45 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                          ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       {isSettled ? (
                         <>
-                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <CheckCircle2 className="h-3 w-3" />
                           Paid
                         </>
                       ) : (
                         <>
-                          <Circle className="h-3.5 w-3.5" />
+                          <Circle className="h-3 w-3" />
                           Unpaid
                         </>
                       )}
@@ -459,21 +462,21 @@ export function SummaryStep({
               </div>
 
               {person.items.length > 0 ? (
-                <ul className="mt-2.5 space-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs">
+                <ul className="mt-2.5 divide-y divide-[var(--border-subtle)]/70 border-t border-[var(--border-subtle)] pt-1 text-xs">
                   {person.items.map((item, idx) => (
                     <li
                       key={`${item.itemId}-${idx}`}
-                      className="flex items-center justify-between gap-2 text-[var(--text-secondary)]"
+                      className="flex items-center justify-between gap-2 py-1.5 text-[var(--text-secondary)]"
                     >
                       <span className="min-w-0 truncate">
                         {item.qty > 1 ? `${item.qty}x ` : ""}
                         {item.name || "Item"}
                         {item.isCustomShare ? (
-                          <span className="ml-1 rounded bg-[var(--accent-soft)] px-1 py-0.5 font-mono text-[10px] text-[var(--accent-text)]">
+                          <span className="ml-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-primary)]">
                             {item.shareWeight}/{item.totalShares}
                           </span>
                         ) : item.shareCount > 1 ? (
-                          <span className="ml-1 rounded bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+                          <span className="ml-1.5 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
                             ÷{item.shareCount}
                           </span>
                         ) : null}
@@ -485,7 +488,7 @@ export function SummaryStep({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-2 border-t border-[var(--border-subtle)] pt-2 text-xs text-[var(--text-muted)]">
+                <p className="mt-2 border-t border-[var(--border-subtle)] pt-2 font-mono text-[11px] text-[var(--text-muted)]">
                   No items assigned
                 </p>
               )}
@@ -496,24 +499,22 @@ export function SummaryStep({
                 person.discountShare > 0 ||
                 (showSettleButton && !isSettled)) && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono tabular-nums">
                     {person.taxShare > 0 && (
-                      <span className="font-mono tabular-nums">
-                        Tax +{formatCurrency(person.taxShare, cur)}
-                      </span>
+                      <span>Tax +{formatCurrency(person.taxShare, cur)}</span>
                     )}
                     {person.serviceShare > 0 && (
-                      <span className="font-mono tabular-nums">
+                      <span>
                         Svc +{formatCurrency(person.serviceShare, cur)}
                       </span>
                     )}
                     {person.deliveryShare > 0 && (
-                      <span className="font-mono tabular-nums">
+                      <span>
                         Deliv +{formatCurrency(person.deliveryShare, cur)}
                       </span>
                     )}
                     {person.discountShare > 0 && (
-                      <span className="font-mono tabular-nums text-[var(--accent-text)]">
+                      <span className="text-[var(--success-text)]">
                         Disc -{formatCurrency(person.discountShare, cur)}
                       </span>
                     )}
@@ -525,11 +526,11 @@ export function SummaryStep({
                         type="button"
                         onClick={() => handleCopyPersonNudge(person)}
                         title={`Copy ${person.name}'s individual share`}
-                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--bg-surface-2)] px-2 text-[10px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                        className="inline-flex h-7 items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)]"
                       >
                         {copiedPersonId === person.participantId ? (
                           <>
-                            <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                            <Check className="h-3 w-3 text-[var(--success-text)]" />
                             Copied
                           </>
                         ) : (
@@ -543,7 +544,7 @@ export function SummaryStep({
                         type="button"
                         onClick={() => handleWhatsAppPersonNudge(person)}
                         title={`Send ${person.name} a WhatsApp reminder`}
-                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2 text-[10px] font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+                        className="inline-flex h-7 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-[var(--ink-on-solid)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid-hover)]"
                       >
                         <Send className="h-3 w-3" />
                         Nudge
@@ -557,33 +558,41 @@ export function SummaryStep({
         })}
 
         {/* Exact Sum / Rounding Buffer Reconciliation Strip */}
-        <div className="flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
+        <div className="flex items-center justify-between border-t border-[var(--border-subtle)] px-1 pt-2 font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)]">
           <span>
             {activeRoundingStep > 0 && roundingSurplus > 0
               ? "Rounded total collected"
               : "Sum of individual totals"}
           </span>
-          <span className="font-mono font-semibold text-[var(--text-secondary)] tabular-nums">
+          <span className="font-semibold text-[var(--text-primary)] tabular-nums">
             {formatCurrency(split.sumOfPeopleTotals, cur)}
-            {activeRoundingStep > 0 && roundingSurplus > 0
-              ? ` (+${formatCurrency(roundingSurplus, cur)} buffer)`
-              : split.unassignedItemIds.length === 0 &&
-                  split.sumOfPeopleTotals === split.grandTotal
-                ? " · Exact match ✓"
-                : ""}
+            {activeRoundingStep > 0 && roundingSurplus > 0 ? (
+              <span className="text-[var(--text-secondary)]">
+                {" "}
+                (+{formatCurrency(roundingSurplus, cur)})
+              </span>
+            ) : split.unassignedItemIds.length === 0 &&
+              split.sumOfPeopleTotals === split.grandTotal ? (
+              <span className="text-[var(--success-text)]">
+                {" "}
+                &middot; Exact ✓
+              </span>
+            ) : (
+              ""
+            )}
           </span>
         </div>
       </div>
 
       {/* Collapsible Payment Info Panel */}
-      <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+      <div className="overflow-hidden rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <button
           type="button"
           onClick={() => setPaymentOpen((prev) => !prev)}
-          className="flex min-h-[52px] w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-[var(--bg-surface-2)]"
+          className="flex min-h-[48px] w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left transition-colors duration-150 ease-out hover:bg-[var(--bg-surface-2)]"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <Wallet className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+            <Wallet className="h-4 w-4 shrink-0 text-[var(--text-primary)]" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-[var(--text-primary)]">
                 Payment Info
@@ -592,7 +601,7 @@ export function SummaryStep({
                 </span>
               </p>
               {!paymentOpen && hasPaymentInfo(paymentInfo) && (
-                <p className="truncate text-[11px] text-[var(--text-secondary)]">
+                <p className="truncate font-mono text-[11px] text-[var(--text-secondary)]">
                   {[paymentInfo.provider, paymentInfo.accountNumber]
                     .filter(Boolean)
                     .join(" · ")}
@@ -608,10 +617,10 @@ export function SummaryStep({
         </button>
 
         {paymentOpen && (
-          <div className="space-y-2.5 border-t border-[var(--border-subtle)] px-4 py-3.5">
+          <div className="space-y-2.5 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/50 px-3.5 py-3.5">
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <label className="block">
-                <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                <span className="micro-label block text-[var(--text-muted)]">
                   Bank / E-Wallet
                 </span>
                 <input
@@ -624,12 +633,12 @@ export function SummaryStep({
                     })
                   }
                   placeholder="e.g. BCA, GoPay, PayNow"
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                <span className="micro-label block text-[var(--text-muted)]">
                   Account / Phone Number
                 </span>
                 <input
@@ -642,14 +651,14 @@ export function SummaryStep({
                     })
                   }
                   placeholder="e.g. 1234567890"
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 font-mono text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 font-mono text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </label>
             </div>
 
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <label className="block">
-                <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                <span className="micro-label block text-[var(--text-muted)]">
                   Account Name
                 </span>
                 <input
@@ -662,12 +671,12 @@ export function SummaryStep({
                     })
                   }
                   placeholder="e.g. Budi Santoso"
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                <span className="micro-label block text-[var(--text-muted)]">
                   Note (optional)
                 </span>
                 <input
@@ -680,7 +689,7 @@ export function SummaryStep({
                     })
                   }
                   placeholder="e.g. Thanks!"
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                  className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </label>
             </div>
@@ -694,21 +703,21 @@ export function SummaryStep({
         )}
       </div>
 
-      {/* Save to History & Shareable Link (Login Mode / Guest Nudge) */}
+      {/* Save to History & Shareable Link */}
       {supabaseEnabled && (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
+        <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
           {isSignedIn ? (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   {bill.savedBillId ? (
-                    <CloudCheck className="h-4 w-4 text-[var(--accent-text)]" />
+                    <CloudCheck className="h-4 w-4 text-[var(--success-text)]" />
                   ) : (
                     <Globe className="h-4 w-4 text-[var(--text-secondary)]" />
                   )}
                   <span className="text-xs font-semibold text-[var(--text-primary)]">
                     {bill.savedBillId
-                      ? "Saved to your history"
+                      ? "Saved to your archive"
                       : "Save bill & create share link"}
                   </span>
                 </div>
@@ -717,7 +726,7 @@ export function SummaryStep({
                   type="button"
                   disabled={savingBill}
                   onClick={onSaveBillToCloud}
-                  className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-60"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)] disabled:opacity-60"
                 >
                   {savingBill ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -729,19 +738,19 @@ export function SummaryStep({
               </div>
 
               {shareUrl && (
-                <div className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
-                  <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--accent-text)]" />
+                <div className="flex items-center gap-2 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 py-2">
+                  <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--text-primary)]" />
                   <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--text-secondary)]">
                     {shareUrl}
                   </span>
                   <button
                     type="button"
                     onClick={handleCopyShareLink}
-                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-[var(--bg-surface)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
                   >
                     {copiedLink ? (
                       <>
-                        <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                        <Check className="h-3 w-3 text-[var(--success-text)]" />
                         Copied
                       </>
                     ) : (
@@ -764,9 +773,9 @@ export function SummaryStep({
               <button
                 type="button"
                 onClick={onOpenAccount}
-                className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+                className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
               >
-                <UserCheck className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+                <UserCheck className="h-3.5 w-3.5" />
                 Sign in
               </button>
             </div>
@@ -776,18 +785,18 @@ export function SummaryStep({
 
       {/* Optional Send Bill into an existing Trip */}
       {availableTrips.length > 0 && onAddBillToTrip && (
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
+        <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
             <Compass className="h-4 w-4 text-[var(--accent-text)]" />
             <span>Add this itemized bill to a Trip</span>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {availableTrips.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onAddBillToTrip(t.id)}
-                className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:border-[var(--accent)]/50 hover:text-[var(--accent-text)]"
+                className="inline-flex h-8 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-3 font-mono text-[11px] font-semibold text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
               >
                 + {t.name}
               </button>
@@ -797,13 +806,13 @@ export function SummaryStep({
       )}
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/95 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-md items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-strong)] bg-[var(--bg-app)]">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onBackToAssign}
             aria-label="Back to Assign"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -811,7 +820,7 @@ export function SummaryStep({
           <button
             type="button"
             onClick={handleCopyWhatsApp}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] active:scale-[0.99]"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-3.5 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
           >
             {copiedWhatsApp ? (
               <>
@@ -831,7 +840,7 @@ export function SummaryStep({
             onClick={handleOpenWhatsApp}
             title="Open directly in WhatsApp"
             aria-label="Share via WhatsApp"
-            className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3.5 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90 active:scale-[0.99]"
+            className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-[3px] border border-[var(--success)] bg-[var(--success-soft)] px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--success-text)] transition-colors duration-150 ease-out hover:bg-[var(--success)] hover:text-[#F7F5F0]"
           >
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">WhatsApp</span>
@@ -840,9 +849,9 @@ export function SummaryStep({
           <button
             type="button"
             onClick={onNewSplit}
-            title="Start a new bill"
+            title="Start a new split"
             aria-label="Start a new split"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             <RotateCcw className="h-4 w-4" />
           </button>

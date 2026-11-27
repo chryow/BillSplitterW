@@ -20,19 +20,22 @@ export default async function SharedBillPage({ params }: PageProps) {
 
   if (!supabase) {
     return (
-      <main className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col items-center justify-center px-6 text-center">
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-          Shared links are not configured yet
-        </h1>
-        <p className="mt-2 text-xs text-[var(--text-secondary)]">
-          Add your Supabase environment variables to enable public bill links.
-        </p>
-        <Link
-          href="/"
-          className="mt-5 inline-flex min-h-[44px] items-center rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white"
-        >
-          Open BillSplitterW
-        </Link>
+      <main className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col items-center justify-center px-6 text-center">
+        <div className="w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6">
+          <p className="micro-label text-[var(--text-muted)]">Shared Ledger</p>
+          <h1 className="font-editorial mt-1 text-xl font-semibold text-[var(--text-primary)]">
+            Shared links are not configured yet
+          </h1>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+            Add your Supabase environment variables to enable public bill links.
+          </p>
+          <Link
+            href="/"
+            className="mt-5 inline-flex min-h-[40px] items-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
+          >
+            Open BillSplitterW
+          </Link>
+        </div>
       </main>
     );
   }

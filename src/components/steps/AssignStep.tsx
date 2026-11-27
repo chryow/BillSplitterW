@@ -247,181 +247,187 @@ export function AssignStep({
   );
 
   return (
-    <section className="space-y-4 pt-3 pb-28">
-      {/* Participants Panel */}
-      <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+    <section className="space-y-4 pt-4 pb-6">
+      {/* Participants Ledger Panel */}
+      <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+        <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3.5 py-2.5">
+          <h2 className="micro-label font-semibold text-[var(--text-primary)]">
             People ({bill.participants.length})
           </h2>
-          <span className="text-[11px] text-[var(--text-muted)]">
+          <span className="micro-label text-[var(--text-muted)]">
             Tap items below to assign
           </span>
         </div>
 
-        {/* Active Participant Chips */}
-        <div className="flex flex-wrap gap-1.5">
-          {bill.participants.map((person) => {
-            const canSaveFriend =
-              isSignedIn &&
-              person.name.toLowerCase() !== "you" &&
-              !savedNamesLower.has(person.name.trim().toLowerCase());
+        <div className="space-y-3 p-3.5">
+          {/* Active Participant Tags */}
+          <div className="flex flex-wrap gap-1.5">
+            {bill.participants.map((person) => {
+              const canSaveFriend =
+                isSignedIn &&
+                person.name.toLowerCase() !== "you" &&
+                !savedNamesLower.has(person.name.trim().toLowerCase());
 
-            return (
-              <div
-                key={person.id}
-                className="inline-flex min-h-[34px] items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] pl-2.5 pr-1.5 text-xs font-medium text-[var(--text-primary)]"
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: person.color }}
-                />
-                <span>{person.name}</span>
-                {canSaveFriend && (
-                  <button
-                    type="button"
-                    onClick={() => onSaveFriend(person.name, person.color)}
-                    title={`Save ${person.name} to frequent friends`}
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--accent-text)]"
-                  >
-                    <Bookmark className="h-3 w-3" />
-                  </button>
-                )}
-                {bill.participants.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeParticipant(person.id)}
-                    aria-label={`Remove ${person.name}`}
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Add Person Input */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            addParticipant(newName);
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Add person (e.g. Budi, Sari)..."
-            className="h-10 min-w-0 flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={!newName.trim()}
-            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-xl bg-[var(--bg-hover)] px-3.5 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--accent)] hover:text-white disabled:opacity-45"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add
-          </button>
-        </form>
-
-        {/* Quick-Add Suggestions + Saved Friends */}
-        {(availableSavedFriends.length > 0 || quickSuggestions.length > 0) && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-            {availableSavedFriends.map((friend) => (
-              <div
-                key={friend.id}
-                className="inline-flex shrink-0 items-center rounded-full border border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[11px] font-medium text-[var(--accent-text)]"
-              >
-                <button
-                  type="button"
-                  onClick={() => addParticipant(friend.name, friend.color)}
-                  className="flex items-center gap-1 py-1 pl-2.5 pr-1.5"
+              return (
+                <div
+                  key={person.id}
+                  className="inline-flex min-h-[32px] items-center gap-1.5 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] pl-2.5 pr-1.5 text-xs font-medium text-[var(--text-primary)]"
                 >
                   <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: friend.color }}
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: person.color }}
                   />
-                  <span>+ {friend.name}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDeleteSavedFriend(friend.id)}
-                  aria-label={`Remove ${friend.name} from saved friends`}
-                  className="pr-2 opacity-60 hover:opacity-100"
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            ))}
-            {quickSuggestions.map((name) => (
-              <button
-                key={name}
-                type="button"
-                onClick={() => addParticipant(name)}
-                className="shrink-0 rounded-full border border-dashed border-[var(--border-strong)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/50 hover:text-[var(--text-primary)]"
-              >
-                + {name}
-              </button>
-            ))}
+                  <span>{person.name}</span>
+                  {canSaveFriend && (
+                    <button
+                      type="button"
+                      onClick={() => onSaveFriend(person.name, person.color)}
+                      title={`Save ${person.name} to frequent friends`}
+                      className="flex h-5 w-5 items-center justify-center rounded-[2px] text-[var(--text-muted)] transition-colors duration-150 ease-out hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      <Bookmark className="h-3 w-3" />
+                    </button>
+                  )}
+                  {bill.participants.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeParticipant(person.id)}
+                      aria-label={`Remove ${person.name}`}
+                      className="flex h-5 w-5 items-center justify-center rounded-[2px] text-[var(--text-muted)] transition-colors duration-150 ease-out hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        )}
 
-        {/* Who Paid the Bill selector */}
-        {bill.participants.length > 1 && (
-          <div className="flex items-center gap-2 border-t border-[var(--border-subtle)] pt-2.5">
-            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-[var(--text-muted)]">
-              <Wallet className="h-3 w-3" />
-              Paid by:
-            </span>
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-              {bill.participants.map((person) => {
-                const isPayer = bill.paidByParticipantId === person.id;
-                return (
+          {/* Add Person Input */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addParticipant(newName);
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Add person (e.g. Budi, Sari)..."
+              className="h-9 min-w-0 flex-1 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!newName.trim()}
+              className="inline-flex h-9 shrink-0 items-center gap-1 rounded-[3px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-3.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-on-solid)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid-hover)] disabled:opacity-40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </button>
+          </form>
+
+          {/* Quick-Add Suggestions + Saved Friends */}
+          {(availableSavedFriends.length > 0 ||
+            quickSuggestions.length > 0) && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              {availableSavedFriends.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="inline-flex shrink-0 items-center rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] text-[11px] font-medium text-[var(--text-primary)]"
+                >
                   <button
-                    key={person.id}
                     type="button"
-                    onClick={() =>
-                      onUpdateBill((prev) => ({
-                        ...prev,
-                        paidByParticipantId: person.id,
-                        settledParticipantIds: prev.settledParticipantIds.filter(
-                          (id) => id !== person.id
-                        ),
-                      }))
-                    }
-                    className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                      isPayer
-                        ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                        : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                    }`}
+                    onClick={() => addParticipant(friend.name, friend.color)}
+                    className="flex items-center gap-1.5 py-1 pl-2 pr-1.5"
                   >
                     <span
                       className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: person.color }}
+                      style={{ backgroundColor: friend.color }}
                     />
-                    {person.name}
+                    <span>+ {friend.name}</span>
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={() => onDeleteSavedFriend(friend.id)}
+                    aria-label={`Remove ${friend.name} from saved friends`}
+                    className="pr-1.5 text-[var(--text-muted)] hover:text-[var(--danger-text)]"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+              {quickSuggestions.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => addParticipant(name)}
+                  className="shrink-0 rounded-[2px] border border-dashed border-[var(--border-subtle)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                >
+                  + {name}
+                </button>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Who Paid the Bill selector */}
+          {bill.participants.length > 1 && (
+            <div className="flex items-center gap-2 border-t border-[var(--border-subtle)] pt-3">
+              <span className="micro-label inline-flex shrink-0 items-center gap-1 text-[var(--text-muted)]">
+                <Wallet className="h-3 w-3" />
+                Paid by
+              </span>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {bill.participants.map((person) => {
+                  const isPayer = bill.paidByParticipantId === person.id;
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() =>
+                        onUpdateBill((prev) => ({
+                          ...prev,
+                          paidByParticipantId: person.id,
+                          settledParticipantIds:
+                            prev.settledParticipantIds.filter(
+                              (id) => id !== person.id
+                            ),
+                        }))
+                      }
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-[2px] border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ease-out ${
+                        isPayer
+                          ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          isPayer ? "ring-1 ring-[var(--ink-on-solid)]/60" : ""
+                        }`}
+                        style={{ backgroundColor: person.color }}
+                      />
+                      {person.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tap-to-Assign Items + Bulk Quick Shortcuts */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <h2 className="micro-label font-semibold text-[var(--text-muted)]">
             Assign Items ({assignedCount}/{totalItems})
           </h2>
           {bill.participants.length > 1 && totalItems > 0 && (
             <button
               type="button"
               onClick={splitEverythingEqually}
-              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--accent-text)]"
+              className="inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
             >
               <Users className="h-3 w-3" />
               Split all equally
@@ -431,8 +437,8 @@ export function AssignStep({
 
         {/* Assign Remaining Unassigned Items Shortcut */}
         {unassignedCount > 0 && bill.participants.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto rounded-xl border border-[var(--warning-border)] bg-[var(--warning-bg)] px-3 py-2 no-scrollbar">
-            <span className="shrink-0 text-[11px] font-semibold text-[var(--warning-text)]">
+          <div className="flex items-center gap-1.5 overflow-x-auto rounded-[3px] border border-[var(--warning-border)] bg-[var(--warning-bg)] px-3 py-2 no-scrollbar">
+            <span className="micro-label shrink-0 font-semibold text-[var(--warning-text)]">
               Assign {unassignedCount} left to:
             </span>
             {bill.participants.map((person) => (
@@ -440,7 +446,7 @@ export function AssignStep({
                 key={person.id}
                 type="button"
                 onClick={() => assignRemainingTo(person.id)}
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2 py-0.5 text-xs font-medium text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
               >
                 <span
                   className="h-1.5 w-1.5 rounded-full"
@@ -472,21 +478,21 @@ export function AssignStep({
             return (
               <div
                 key={item.id}
-                className={`rounded-2xl border transition-colors ${
+                className={`rounded-[3px] border bg-[var(--bg-surface)] transition-colors duration-150 ease-out ${
                   isOpen
-                    ? "border-[var(--accent)]/45 bg-[var(--bg-surface)]"
-                    : "border-[var(--border-subtle)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)]"
+                    ? "card-letterpress"
+                    : "border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
                 }`}
               >
                 <button
                   type="button"
                   onClick={() => setActiveItemId(isOpen ? null : item.id)}
-                  className="flex min-h-[58px] w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+                  className="flex min-h-[56px] w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       {item.qty > 1 && (
-                        <span className="rounded-md bg-[var(--bg-surface-2)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--text-secondary)]">
+                        <span className="rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[var(--text-primary)]">
                           {item.qty}x
                         </span>
                       )}
@@ -497,8 +503,8 @@ export function AssignStep({
 
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       {assignees.length === 0 ? (
-                        <span className="text-[11px] text-[var(--warning-text)]">
-                          Tap to assign
+                        <span className="micro-label font-semibold text-[var(--accent-text)]">
+                          Unassigned — tap to assign
                         </span>
                       ) : (
                         assignees.map((p) => {
@@ -506,7 +512,7 @@ export function AssignStep({
                           return (
                             <span
                               key={p.id}
-                              className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)]"
+                              className="inline-flex items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-primary)]"
                             >
                               <span
                                 className="h-1.5 w-1.5 rounded-full"
@@ -514,7 +520,7 @@ export function AssignStep({
                               />
                               {p.name}
                               {hasCustomWeights && (
-                                <span className="font-mono text-[10px] text-[var(--accent-text)]">
+                                <span className="font-mono text-[10px] font-semibold text-[var(--accent-text)]">
                                   {w}/{totalShares}
                                 </span>
                               )}
@@ -530,7 +536,7 @@ export function AssignStep({
                       {formatCurrency(item.totalPrice, cur)}
                     </p>
                     {assignees.length > 1 && (
-                      <p className="font-mono text-[11px] text-[var(--text-muted)] tabular-nums">
+                      <p className="font-mono text-[10px] text-[var(--text-muted)] tabular-nums">
                         {hasCustomWeights
                           ? weights.join(":")
                           : `÷${assignees.length}`}
@@ -540,8 +546,8 @@ export function AssignStep({
                 </button>
 
                 {isOpen && (
-                  <div className="space-y-3 border-t border-[var(--border-subtle)] px-3.5 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="space-y-3 border-t border-[var(--border-subtle)] bg-[var(--bg-surface-2)]/50 px-3.5 py-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {bill.participants.map((person) => {
                         const selected = item.assigneeIds.includes(person.id);
                         return (
@@ -551,20 +557,22 @@ export function AssignStep({
                             onClick={() =>
                               toggleItemAssignee(item.id, person.id)
                             }
-                            className={`inline-flex min-h-[40px] items-center gap-2 rounded-xl border px-3 text-xs font-semibold transition-all active:scale-[0.98] ${
+                            className={`inline-flex min-h-[36px] items-center gap-2 rounded-[3px] border px-3 text-xs font-semibold transition-colors duration-150 ease-out ${
                               selected
-                                ? "border-[var(--accent)]/60 bg-[var(--accent-soft)] text-[var(--text-primary)]"
-                                : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                                ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                                : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-2)]"
                             }`}
                           >
                             <span
-                              className="h-2.5 w-2.5 rounded-full"
+                              className={`h-2 w-2 rounded-full ${
+                                selected
+                                  ? "ring-1 ring-[var(--ink-on-solid)]/60"
+                                  : ""
+                              }`}
                               style={{ backgroundColor: person.color }}
                             />
                             <span>{person.name}</span>
-                            {selected && (
-                              <Check className="h-3.5 w-3.5 text-[var(--accent-text)]" />
-                            )}
+                            {selected && <Check className="h-3.5 w-3.5" />}
                           </button>
                         );
                       })}
@@ -573,10 +581,10 @@ export function AssignStep({
                         <button
                           type="button"
                           onClick={() => splitItemAll(item.id)}
-                          className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+                          className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-[3px] border px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.05em] transition-colors duration-150 ease-out ${
                             allAssigned
                               ? "border-[var(--border-strong)] bg-[var(--bg-hover)] text-[var(--text-primary)]"
-                              : "border-dashed border-[var(--border-strong)] text-[var(--text-secondary)] hover:border-[var(--accent)]/50 hover:text-[var(--text-primary)]"
+                              : "border-dashed border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-2)] hover:text-[var(--text-primary)]"
                           }`}
                         >
                           <Users className="h-3.5 w-3.5" />
@@ -597,7 +605,7 @@ export function AssignStep({
                                 [item.id]: true,
                               }))
                             }
-                            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-text)]"
+                            className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:text-[var(--accent-text)]"
                           >
                             <SlidersHorizontal className="h-3 w-3" />
                             Adjust unequal shares (e.g. 2:1 portions)
@@ -605,7 +613,7 @@ export function AssignStep({
                         ) : (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-medium text-[var(--text-muted)]">
+                              <span className="micro-label text-[var(--text-muted)]">
                                 Custom shares (total {totalShares})
                               </span>
                               <button
@@ -617,7 +625,7 @@ export function AssignStep({
                                     [item.id]: false,
                                   }));
                                 }}
-                                className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                className="font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-secondary)] hover:text-[var(--accent-text)]"
                               >
                                 Reset equal
                               </button>
@@ -628,7 +636,7 @@ export function AssignStep({
                                 return (
                                   <div
                                     key={person.id}
-                                    className="flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 py-1.5"
+                                    className="flex items-center justify-between rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1.5"
                                   >
                                     <div className="flex min-w-0 items-center gap-1.5">
                                       <span
@@ -644,10 +652,14 @@ export function AssignStep({
                                         type="button"
                                         disabled={weight <= 1}
                                         onClick={() =>
-                                          adjustItemShare(item.id, person.id, -1)
+                                          adjustItemShare(
+                                            item.id,
+                                            person.id,
+                                            -1
+                                          )
                                         }
                                         aria-label={`Decrease ${person.name}'s share`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-35"
+                                        className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] disabled:opacity-35"
                                       >
                                         <Minus className="h-3 w-3" />
                                       </button>
@@ -661,7 +673,7 @@ export function AssignStep({
                                           adjustItemShare(item.id, person.id, 1)
                                         }
                                         aria-label={`Increase ${person.name}'s share`}
-                                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-35"
+                                        className="flex h-7 w-7 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] disabled:opacity-35"
                                       >
                                         <Plus className="h-3 w-3" />
                                       </button>
@@ -683,13 +695,13 @@ export function AssignStep({
       </div>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-subtle)] bg-[var(--bg-app)]/95 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-md items-center gap-2.5 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--border-strong)] bg-[var(--bg-app)]">
+        <div className="mx-auto flex w-full max-w-lg items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onBack}
             aria-label="Back to Items"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -698,11 +710,13 @@ export function AssignStep({
             type="button"
             disabled={bill.participants.length === 0}
             onClick={onNext}
-            className="flex h-12 flex-1 items-center justify-between rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-45"
+            className="flex h-11 flex-1 items-center justify-between rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-45"
           >
-            <span>See Final Breakdown</span>
-            <span className="flex items-center gap-1.5 text-xs">
-              {assignedCount}/{totalItems} assigned
+            <span className="font-mono text-xs font-semibold uppercase tracking-[0.06em]">
+              Final Breakdown
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-xs tabular-nums">
+              {assignedCount}/{totalItems}
               <ArrowRight className="h-4 w-4" />
             </span>
           </button>

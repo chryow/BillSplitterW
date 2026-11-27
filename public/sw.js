@@ -1,4 +1,4 @@
-const CACHE_NAME = "billsplitterw-shell-v1";
+const CACHE_NAME = "billsplitterw-shell-v2";
 const CORE_ASSETS = [
   "/",
   "/manifest.json",

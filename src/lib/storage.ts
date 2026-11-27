@@ -3,7 +3,7 @@ import type { AppStep, BillState, PaymentInfo, Trip } from "./types";
 
 const ACTIVE_BILL_KEY = "billsplitterw:active-bill:v1";
 const PAYMENT_INFO_KEY = "billsplitterw:payment-info:v1";
-const THEME_KEY = "billsplitterw:theme:v1";
+const THEME_KEY = "billsplitterw:theme:v2";
 
 export interface StoredSession {
   step: AppStep;
@@ -118,12 +118,12 @@ export function saveLocalPaymentInfo(info: PaymentInfo): void {
 export type ThemeMode = "dark" | "light";
 
 export function loadTheme(): ThemeMode {
-  if (!isBrowser()) return "dark";
+  if (!isBrowser()) return "light";
   try {
     const stored = window.localStorage.getItem(THEME_KEY);
-    return stored === "light" ? "light" : "dark";
+    return stored === "dark" ? "dark" : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 

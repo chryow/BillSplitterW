@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Compass, ReceiptText } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { ColophonFooter } from "@/components/layout/ColophonFooter";
 import { StepIndicator } from "@/components/layout/StepIndicator";
 import { AssignStep } from "@/components/steps/AssignStep";
 import { ReviewStep } from "@/components/steps/ReviewStep";
@@ -109,7 +110,7 @@ export function BillSplitterApp() {
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
     ...EMPTY_PAYMENT_INFO,
   });
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [theme, setTheme] = useState<ThemeMode>("light");
 
   // Trips state (works in both Guest Mode localStorage and Supabase Login Mode)
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -1260,6 +1261,10 @@ export function BillSplitterApp() {
     [trips]
   );
 
+  const hasStickyBottomBar =
+    (mode === "bill" && step !== 1) ||
+    (mode === "trips" && Boolean(activeTrip));
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[var(--bg-app)]">
       <AppHeader
@@ -1277,9 +1282,9 @@ export function BillSplitterApp() {
       />
 
       {/* Compact Single Bill / Trips Mode Switcher */}
-      <div className="mx-auto w-full max-w-md px-4 pt-3">
+      <div className="mx-auto w-full max-w-lg px-4 pt-3">
         <div
-          className="grid grid-cols-2 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1"
+          className="grid grid-cols-2 gap-1 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-1"
           role="tablist"
           aria-label="App mode"
         >
@@ -1288,13 +1293,13 @@ export function BillSplitterApp() {
             role="tab"
             aria-selected={mode === "bill"}
             onClick={() => setMode("bill")}
-            className={`flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex min-h-[32px] items-center justify-center gap-1.5 rounded-[2px] font-mono text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
               mode === "bill"
-                ? "bg-[var(--bg-surface-2)] text-[var(--text-primary)] shadow-xs"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-2)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <ReceiptText className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+            <ReceiptText className="h-3.5 w-3.5" />
             <span>Single Bill</span>
           </button>
           <button
@@ -1302,13 +1307,13 @@ export function BillSplitterApp() {
             role="tab"
             aria-selected={mode === "trips"}
             onClick={() => setMode("trips")}
-            className={`flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex min-h-[32px] items-center justify-center gap-1.5 rounded-[2px] font-mono text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
               mode === "trips"
-                ? "bg-[var(--bg-surface-2)] text-[var(--text-primary)] shadow-xs"
-                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                ? "bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-2)] hover:text-[var(--text-primary)]"
             }`}
           >
-            <Compass className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+            <Compass className="h-3.5 w-3.5" />
             <span>
               Trips{trips.length > 0 ? ` (${trips.length})` : ""}
             </span>
@@ -1324,7 +1329,7 @@ export function BillSplitterApp() {
         />
       )}
 
-      <main className="mx-auto w-full max-w-md flex-1 px-4">
+      <main className="mx-auto w-full max-w-lg flex-1 px-4">
         {mode === "trips" ? (
           <TripsView
             trips={trips}
@@ -1414,6 +1419,8 @@ export function BillSplitterApp() {
         )}
       </main>
 
+      <ColophonFooter withBottomBarOffset={hasStickyBottomBar} />
+
       {/* Lazy-loaded Modals / Sheets */}
       {currencyOpen && (
         <CurrencySheet
@@ -1442,18 +1449,18 @@ export function BillSplitterApp() {
         />
       )}
 
-      {/* Lightweight Toast with Optional Undo Action */}
+      {/* Lightweight Editorial Toast with Optional Undo Action */}
       {toast && (
         <div
           role="status"
-          className="fixed top-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-2 text-xs font-medium text-[var(--text-primary)] shadow-lg animate-fade-in"
+          className="fixed top-16 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-[3px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-3.5 py-2 font-mono text-[11px] font-medium text-[var(--ink-on-solid)] animate-fade-in"
         >
-          <span>{toast.message}</span>
+          <span className="truncate">{toast.message}</span>
           {toast.onUndo && (
             <button
               type="button"
               onClick={toast.onUndo}
-              className="rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+              className="shrink-0 rounded-[2px] bg-[var(--accent)] px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)]"
             >
               {toast.undoLabel ?? "Undo"}
             </button>

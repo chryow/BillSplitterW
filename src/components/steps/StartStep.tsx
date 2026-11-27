@@ -179,14 +179,21 @@ export function StartStep({
   };
 
   return (
-    <section className="space-y-5 pt-4 pb-10">
-      <div className="space-y-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+    <section className="space-y-5 pt-5 pb-10">
+      <div className="space-y-2 border-b border-[var(--border-subtle)] pb-4">
+        <p className="micro-label flex items-center gap-2 text-[var(--text-muted)]">
+          <span
+            aria-hidden="true"
+            className="inline-block h-[5px] w-[5px] bg-[var(--accent)]"
+          />
+          <span>Receipt &amp; Split Ledger</span>
+        </p>
+        <h1 className="font-editorial text-[28px] leading-[1.15] font-semibold tracking-tight text-[var(--text-primary)]">
           Split any bill in seconds.
         </h1>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
           Start manually in Guest Mode or sign in with Google to scan receipts
-          with AI and save your split history.
+          with AI and archive your split ledger.
         </p>
       </div>
 
@@ -194,20 +201,22 @@ export function StartStep({
         <button
           type="button"
           onClick={onResumeBill}
-          className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-4 py-3 text-left transition-opacity hover:opacity-95"
+          className="card-letterpress flex min-h-[54px] w-full items-center justify-between gap-3 rounded-[3px] border bg-[var(--bg-surface-2)] px-4 py-3 text-left transition-colors duration-150 ease-out hover:bg-[var(--bg-hover)]"
         >
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-[var(--accent-text)]">
-              Resume saved session
+            <p className="micro-label font-semibold text-[var(--accent-text)]">
+              Resume active sheet
             </p>
-            <p className="truncate text-sm font-medium text-[var(--text-primary)]">
-              {activeMerchant || "Untitled Bill"} ·{" "}
-              <span className="font-mono tabular-nums">
-                {formatCurrency(activeTotal, currency)}
-              </span>
+            <p className="mt-0.5 truncate text-sm font-medium text-[var(--text-primary)]">
+              {activeMerchant || "Untitled Bill"}
             </p>
           </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums">
+              {formatCurrency(activeTotal, currency)}
+            </span>
+            <ArrowRight className="h-4 w-4 text-[var(--text-primary)]" />
+          </div>
         </button>
       )}
 
@@ -253,18 +262,18 @@ export function StartStep({
           type="button"
           disabled={isBusy}
           onClick={() => setScanSheetOpen(true)}
-          className="group relative flex min-h-[92px] w-full items-center gap-4 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent)] px-5 py-4 text-left text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] active:scale-[0.99] disabled:opacity-75"
+          className="group relative flex min-h-[88px] w-full items-center gap-4 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 py-4 text-left text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-75"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/15">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] border border-[#F7F5F0]/35 bg-[#1A1A18]/15">
             {isBusy ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Camera className="h-6 w-6" />
+              <Camera className="h-5 w-5" />
             )}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-base font-semibold tracking-tight">
+              <p className="font-editorial text-lg font-semibold tracking-tight">
                 {scanStage === "compressing"
                   ? "Optimizing photo..."
                   : scanStage === "scanning"
@@ -272,20 +281,20 @@ export function StartStep({
                     : "Scan Receipt"}
               </p>
               {!isSignedIn && !isBusy && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/95">
+                <span className="inline-flex items-center gap-1 rounded-[2px] border border-[#F7F5F0]/40 bg-[#1A1A18]/20 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.08em] text-[#F7F5F0]">
                   <Lock className="h-2.5 w-2.5" />
                   Sign in
                 </span>
               )}
               {isSignedIn && !isBusy && remainingScans !== null && (
-                <span className="inline-flex items-center rounded-full bg-black/20 px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-white/95">
-                  {remainingScans}/{dailyLimit} left today
+                <span className="inline-flex items-center rounded-[2px] border border-[#F7F5F0]/40 bg-[#1A1A18]/20 px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums text-[#F7F5F0]">
+                  {remainingScans}/{dailyLimit} LEFT
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-white/85">
+            <p className="mt-1 text-xs text-[#F7F5F0]/90">
               {isBusy
-                ? "Auto-extracting items, tax, service & promos"
+                ? "Auto-extracting items, tax, delivery & promos"
                 : !isSignedIn
                   ? `Sign in with Google to scan (${dailyLimit} free scans/day)`
                   : quotaExhausted
@@ -294,7 +303,7 @@ export function StartStep({
             </p>
           </div>
           {!isBusy && (
-            <ArrowRight className="h-5 w-5 shrink-0 opacity-80 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-5 w-5 shrink-0 transition-transform duration-150 ease-out group-hover:translate-x-0.5" />
           )}
         </button>
 
@@ -302,20 +311,21 @@ export function StartStep({
           type="button"
           disabled={isBusy}
           onClick={onStartManual}
-          className="group flex min-h-[82px] w-full items-center gap-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-5 py-4 text-left transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-2)] active:scale-[0.99] disabled:opacity-60"
+          className="group flex min-h-[82px] w-full items-center gap-4 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 py-4 text-left transition-colors duration-150 ease-out hover:bg-[var(--bg-surface-2)] disabled:opacity-60"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-surface-2)] text-[var(--text-primary)]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)]">
             <PenLine className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
+            <p className="font-editorial text-lg font-semibold tracking-tight text-[var(--text-primary)]">
               Manual Split
             </p>
             <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-              Type items, tax, service charge, and discounts — no login needed
+              Enter items, tax, service, delivery fee, and promos — no login
+              needed
             </p>
           </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" />
+          <ArrowRight className="h-5 w-5 shrink-0 text-[var(--text-secondary)] transition-transform duration-150 ease-out group-hover:translate-x-0.5 group-hover:text-[var(--text-primary)]" />
         </button>
       </div>
 
@@ -325,14 +335,14 @@ export function StartStep({
           type="button"
           disabled={isBusy}
           onClick={onTrySample}
-          className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border-strong)] bg-transparent px-4 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/50 hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] disabled:opacity-50"
+          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[3px] border border-dashed border-[var(--border-subtle)] bg-transparent px-4 font-mono text-xs font-medium uppercase tracking-[0.06em] text-[var(--text-secondary)] transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4 text-[var(--accent-text)]" />
-          <span>Try Sample Receipt</span>
+          <Sparkles className="h-3.5 w-3.5 text-[var(--accent-text)]" />
+          <span>Load Sample Receipt</span>
         </button>
-        <p className="mt-2 text-center text-[11px] text-[var(--text-muted)]">
-          Loads an Indonesian restaurant bill with PB1 tax, service charge &amp;
-          promo discount.
+        <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)]">
+          Indonesian restaurant receipt &middot; PB1 tax &middot; Service &middot;
+          Promo
         </p>
       </div>
 
@@ -359,7 +369,7 @@ export function StartStep({
       >
         {!isSignedIn ? (
           <div className="space-y-3">
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-3.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+            <div className="rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 text-xs leading-relaxed text-[var(--text-secondary)]">
               Sign in with Google for{" "}
               <strong className="text-[var(--text-primary)]">
                 {dailyLimit} free AI receipt scans per day
@@ -373,7 +383,7 @@ export function StartStep({
                 type="button"
                 disabled={authLoading}
                 onClick={onSignInGoogle}
-                className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-60"
+                className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-60"
               >
                 <UserCheck className="h-4 w-4" />
                 <span>
@@ -395,14 +405,14 @@ export function StartStep({
                 setScanSheetOpen(false);
                 onStartManual();
               }}
-              className="min-h-[44px] w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-4 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+              className="min-h-[42px] w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-4 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--bg-surface-2)]"
             >
               Continue with Manual Split instead
             </button>
           </div>
         ) : quotaExhausted ? (
           <div className="space-y-3">
-            <div className="rounded-xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3.5 text-xs leading-relaxed text-[var(--warning-text)]">
+            <div className="rounded-[3px] border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3.5 text-xs leading-relaxed text-[var(--warning-text)]">
               You&apos;ve reached your {dailyLimit} scans/day allowance. Re-scanning
               a receipt you already scanned today still works from cache, or you
               can enter items manually right away.
@@ -413,7 +423,7 @@ export function StartStep({
                 setScanSheetOpen(false);
                 onStartManual();
               }}
-              className="min-h-[46px] w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
+              className="min-h-[44px] w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--ink-solid)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[var(--ink-on-solid)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid-hover)]"
             >
               Continue with Manual Split
             </button>
@@ -423,7 +433,7 @@ export function StartStep({
             <button
               type="button"
               onClick={() => cameraInputRef.current?.click()}
-              className="flex min-h-[56px] w-full items-center gap-3.5 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-4 text-left transition-opacity hover:opacity-95"
+              className="card-letterpress flex min-h-[56px] w-full items-center gap-3.5 rounded-[3px] border bg-[var(--bg-surface)] px-4 text-left transition-colors duration-150 ease-out hover:bg-[var(--bg-surface-2)]"
             >
               <Camera className="h-5 w-5 shrink-0 text-[var(--accent-text)]" />
               <div>
@@ -439,7 +449,7 @@ export function StartStep({
             <button
               type="button"
               onClick={() => galleryInputRef.current?.click()}
-              className="flex min-h-[56px] w-full items-center gap-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-4 text-left transition-colors hover:bg-[var(--bg-hover)]"
+              className="flex min-h-[56px] w-full items-center gap-3.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-4 text-left transition-colors duration-150 ease-out hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface-2)]"
             >
               <ImageIcon className="h-5 w-5 shrink-0 text-[var(--text-secondary)]" />
               <div>

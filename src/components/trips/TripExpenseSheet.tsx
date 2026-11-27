@@ -303,9 +303,7 @@ export function TripExpenseSheet({
       mode,
       amount: mode === "quick" ? amount : itemizedMath.computedGrandTotal,
       assigneeIds: mode === "quick" ? assigneeIds : allMemberIds,
-      ...(mode === "quick" && showQuickWeights
-        ? { assigneeShares }
-        : {}),
+      ...(mode === "quick" && showQuickWeights ? { assigneeShares } : {}),
       ...(mode === "itemized"
         ? {
             items: items.filter(
@@ -336,7 +334,7 @@ export function TripExpenseSheet({
       <div className="space-y-4">
         {/* Mode Switcher + AI Scan Shortcut */}
         <div className="flex items-center justify-between gap-2">
-          <div className="inline-flex rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-0.5">
+          <div className="inline-flex rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-0.5">
             {(
               [
                 { id: "quick", label: "Quick Bill" },
@@ -347,9 +345,9 @@ export function TripExpenseSheet({
                 key={tab.id}
                 type="button"
                 onClick={() => setMode(tab.id)}
-                className={`min-h-[32px] rounded-lg px-3 text-xs font-semibold transition-colors ${
+                className={`min-h-[30px] rounded-[2px] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
                   mode === tab.id
-                    ? "bg-[var(--accent)] text-white"
+                    ? "bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
                     : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
@@ -375,7 +373,7 @@ export function TripExpenseSheet({
               }
               fileInputRef.current?.click();
             }}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90 disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-[3px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-text)] transition-colors duration-150 ease-out hover:bg-[var(--accent)] hover:text-[#F7F5F0] disabled:opacity-60"
           >
             {scanning ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -397,7 +395,7 @@ export function TripExpenseSheet({
         {/* Title + Date */}
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           <label className="block sm:col-span-2">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+            <span className="micro-label block text-[var(--text-muted)]">
               Bill / Place Name
             </span>
             <input
@@ -405,33 +403,33 @@ export function TripExpenseSheet({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Villa Seminyak, Grab, Dinner"
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--border-strong)] focus:outline-none"
             />
           </label>
           <label className="block">
-            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+            <span className="micro-label block text-[var(--text-muted)]">
               Date
             </span>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 font-mono text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+              className="mt-1 h-9 w-full rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 font-mono text-xs text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
             />
           </label>
         </div>
 
-        {/* Category Pills */}
+        {/* Category Tags */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.value}
               type="button"
               onClick={() => setCategory(cat.value)}
-              className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              className={`shrink-0 rounded-[2px] border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ease-out ${
                 category === cat.value
-                  ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
-                  : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
               }`}
             >
               {cat.label}
@@ -441,7 +439,7 @@ export function TripExpenseSheet({
 
         {/* Paid By */}
         <div>
-          <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+          <span className="micro-label block text-[var(--text-muted)]">
             Paid by
           </span>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -452,20 +450,20 @@ export function TripExpenseSheet({
                   key={member.id}
                   type="button"
                   onClick={() => setPaidByMemberId(member.id)}
-                  className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+                  className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-[2px] border px-2.5 text-xs font-semibold transition-colors duration-150 ease-out ${
                     active
-                      ? "border-[var(--accent)]/60 bg-[var(--accent-soft)] text-[var(--text-primary)]"
-                      : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                      ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                      : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   <span
-                    className="h-2 w-2 rounded-full"
+                    className={`h-2 w-2 rounded-full ${
+                      active ? "ring-1 ring-[var(--ink-on-solid)]/60" : ""
+                    }`}
                     style={{ backgroundColor: member.color }}
                   />
                   {member.name}
-                  {active && (
-                    <Check className="h-3 w-3 text-[var(--accent-text)]" />
-                  )}
+                  {active && <Check className="h-3 w-3" />}
                 </button>
               );
             })}
@@ -476,11 +474,11 @@ export function TripExpenseSheet({
         {mode === "quick" ? (
           <div className="space-y-3.5">
             <label className="block">
-              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+              <span className="micro-label block text-[var(--text-muted)]">
                 Total Amount
               </span>
-              <div className="mt-1 flex h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-3">
-                <span className="font-mono text-sm text-[var(--text-muted)]">
+              <div className="mt-1 flex h-11 items-center gap-2 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 focus-within:border-[var(--border-strong)]">
+                <span className="shrink-0 whitespace-nowrap font-mono text-sm text-[var(--text-muted)]">
                   {currencyInfo.symbol}
                 </span>
                 <AmountInput
@@ -495,7 +493,7 @@ export function TripExpenseSheet({
 
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                <span className="micro-label text-[var(--text-muted)]">
                   Assigned to ({assigneeIds.length}/{members.length})
                 </span>
                 {members.length > 1 && (
@@ -504,7 +502,7 @@ export function TripExpenseSheet({
                     onClick={() =>
                       setAssigneeIds(allQuickSelected ? [] : allMemberIds)
                     }
-                    className="text-[11px] font-semibold text-[var(--accent-text)] hover:opacity-85"
+                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--accent-text)] hover:underline"
                   >
                     {allQuickSelected ? "Clear all" : "Split all"}
                   </button>
@@ -518,20 +516,20 @@ export function TripExpenseSheet({
                       key={member.id}
                       type="button"
                       onClick={() => toggleQuickAssignee(member.id)}
-                      className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors ${
+                      className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-[2px] border px-2.5 text-xs font-semibold transition-colors duration-150 ease-out ${
                         selected
-                          ? "border-[var(--accent)]/60 bg-[var(--accent-soft)] text-[var(--text-primary)]"
-                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
+                          ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
                       }`}
                     >
                       <span
-                        className="h-2 w-2 rounded-full"
+                        className={`h-2 w-2 rounded-full ${
+                          selected ? "ring-1 ring-[var(--ink-on-solid)]/60" : ""
+                        }`}
                         style={{ backgroundColor: member.color }}
                       />
                       {member.name}
-                      {selected && (
-                        <Check className="h-3 w-3 text-[var(--accent-text)]" />
-                      )}
+                      {selected && <Check className="h-3 w-3" />}
                     </button>
                   );
                 })}
@@ -543,15 +541,15 @@ export function TripExpenseSheet({
                     <button
                       type="button"
                       onClick={() => setShowQuickWeights(true)}
-                      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--accent-text)]"
+                      className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-secondary)] hover:text-[var(--accent-text)]"
                     >
                       <SlidersHorizontal className="h-3 w-3" />
                       Adjust custom shares (e.g. 2:1)
                     </button>
                   ) : (
-                    <div className="space-y-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5">
+                    <div className="space-y-1.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-[var(--text-muted)]">
+                        <span className="micro-label text-[var(--text-muted)]">
                           Custom shares
                         </span>
                         <button
@@ -560,7 +558,7 @@ export function TripExpenseSheet({
                             setAssigneeShares({});
                             setShowQuickWeights(false);
                           }}
-                          className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          className="font-mono text-[10px] uppercase tracking-[0.06em] text-[var(--text-secondary)] hover:text-[var(--accent-text)]"
                         >
                           Reset equal
                         </button>
@@ -573,7 +571,7 @@ export function TripExpenseSheet({
                             return (
                               <div
                                 key={member.id}
-                                className="flex items-center justify-between rounded-lg bg-[var(--bg-surface)] px-2.5 py-1.5"
+                                className="flex items-center justify-between rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1.5"
                               >
                                 <span className="truncate text-xs font-medium text-[var(--text-primary)]">
                                   {member.name}
@@ -585,7 +583,7 @@ export function TripExpenseSheet({
                                     onClick={() =>
                                       adjustQuickWeight(member.id, -1)
                                     }
-                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-primary)] disabled:opacity-35"
+                                    className="flex h-6 w-6 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] hover:border-[var(--border-strong)] disabled:opacity-35"
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
@@ -598,7 +596,7 @@ export function TripExpenseSheet({
                                     onClick={() =>
                                       adjustQuickWeight(member.id, 1)
                                     }
-                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-[var(--border-subtle)] text-[var(--text-primary)] disabled:opacity-35"
+                                    className="flex h-6 w-6 items-center justify-center rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-primary)] hover:border-[var(--border-strong)] disabled:opacity-35"
                                   >
                                     <Plus className="h-3 w-3" />
                                   </button>
@@ -617,7 +615,7 @@ export function TripExpenseSheet({
           /* Itemized Mode */
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <span className="micro-label font-semibold text-[var(--text-muted)]">
                 Items ({items.length})
               </span>
               <button
@@ -635,14 +633,14 @@ export function TripExpenseSheet({
                     },
                   ])
                 }
-                className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent-text)]"
+                className="inline-flex items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-primary)] transition-colors duration-150 ease-out hover:bg-[var(--ink-solid)] hover:text-[var(--ink-on-solid)]"
               >
                 <Plus className="h-3 w-3" />
                 Add Item
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="divide-y divide-[var(--border-subtle)] rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
               {items.map((item, idx) => {
                 const isOpen = expandedItemId === item.id;
                 const assignedNames = members
@@ -650,10 +648,7 @@ export function TripExpenseSheet({
                   .map((m) => m.name);
 
                 return (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5 space-y-2"
-                  >
+                  <div key={item.id} className="space-y-2 p-2.5">
                     <div className="flex items-center gap-1.5">
                       <input
                         type="text"
@@ -668,9 +663,9 @@ export function TripExpenseSheet({
                           )
                         }
                         placeholder={`Item ${idx + 1}`}
-                        className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                        className="h-8 min-w-0 flex-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 text-xs font-medium text-[var(--text-primary)] focus:border-[var(--border-strong)] focus:outline-none"
                       />
-                      <div className="flex h-9 w-28 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2">
+                      <div className="flex h-8 w-28 items-center gap-1 rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 focus-within:border-[var(--border-strong)]">
                         <span className="font-mono text-[10px] text-[var(--text-muted)]">
                           {currencyInfo.symbol}
                         </span>
@@ -704,7 +699,7 @@ export function TripExpenseSheet({
                           )
                         }
                         aria-label="Delete item"
-                        className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[2px] text-[var(--text-muted)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)]"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -742,7 +737,7 @@ export function TripExpenseSheet({
                               )
                             )
                           }
-                          className="inline-flex shrink-0 items-center gap-1 rounded-md bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-text)]"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-[2px] border border-[var(--border-strong)] bg-[var(--bg-surface-2)] px-2 py-0.5 font-mono text-[10px] font-semibold text-[var(--text-primary)]"
                         >
                           <Scissors className="h-2.5 w-2.5" />
                           Split {item.qty}x
@@ -761,10 +756,10 @@ export function TripExpenseSheet({
                               onClick={() =>
                                 toggleItemAssignee(item.id, member.id)
                               }
-                              className={`inline-flex h-7 items-center gap-1 rounded-lg border px-2 text-[11px] font-semibold ${
+                              className={`inline-flex h-7 items-center gap-1 rounded-[2px] border px-2 text-[11px] font-semibold ${
                                 selected
-                                  ? "border-[var(--accent)]/60 bg-[var(--accent-soft)] text-[var(--text-primary)]"
-                                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-secondary)]"
+                                  ? "border-[var(--border-strong)] bg-[var(--ink-solid)] text-[var(--ink-on-solid)]"
+                                  : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]"
                               }`}
                             >
                               <span
@@ -782,11 +777,11 @@ export function TripExpenseSheet({
               })}
             </div>
 
-            {/* Compact Service, Delivery, Tax & Discount with quick % chips */}
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-2.5">
+            {/* Compact Service, Delivery, Tax & Discount Grid */}
+            <div className="grid grid-cols-2 gap-2.5 rounded-[3px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--text-secondary)]">
+                  <span className="micro-label text-[var(--text-muted)]">
                     Svc
                   </span>
                   <button
@@ -799,7 +794,7 @@ export function TripExpenseSheet({
                         )
                       )
                     }
-                    className="font-mono text-[9px] font-semibold text-[var(--accent-text)]"
+                    className="font-mono text-[10px] font-semibold text-[var(--accent-text)] hover:underline"
                   >
                     +5%
                   </button>
@@ -809,16 +804,16 @@ export function TripExpenseSheet({
                   currency={currency}
                   onChange={setServiceCharge}
                   ariaLabel="Service charge"
-                  className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                  className="mt-1 h-8 w-full rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--text-secondary)]">
+                  <span className="micro-label text-[var(--text-muted)]">
                     Delivery
                   </span>
-                  <span className="text-[9px] text-[var(--text-muted)]">
+                  <span className="micro-label text-[var(--text-muted)]">
                     equal
                   </span>
                 </div>
@@ -827,13 +822,13 @@ export function TripExpenseSheet({
                   currency={currency}
                   onChange={setDeliveryFee}
                   ariaLabel="Delivery fee"
-                  className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                  className="mt-1 h-8 w-full rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--text-secondary)]">
+                  <span className="micro-label text-[var(--text-muted)]">
                     Tax
                   </span>
                   <button
@@ -846,7 +841,7 @@ export function TripExpenseSheet({
                         )
                       )
                     }
-                    className="font-mono text-[9px] font-semibold text-[var(--accent-text)]"
+                    className="font-mono text-[10px] font-semibold text-[var(--accent-text)] hover:underline"
                   >
                     +10%
                   </button>
@@ -856,12 +851,12 @@ export function TripExpenseSheet({
                   currency={currency}
                   onChange={setTax}
                   ariaLabel="Tax amount"
-                  className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                  className="mt-1 h-8 w-full rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--text-primary)] tabular-nums focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <span className="block text-[10px] text-[var(--text-secondary)]">
+                <span className="micro-label block text-[var(--text-muted)]">
                   Discount
                 </span>
                 <AmountInput
@@ -869,14 +864,16 @@ export function TripExpenseSheet({
                   currency={currency}
                   onChange={setDiscount}
                   ariaLabel="Discount amount"
-                  className="mt-1 h-8 w-full rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--accent-text)] tabular-nums focus:outline-none"
+                  className="mt-1 h-8 w-full rounded-[2px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 text-right font-mono text-xs font-semibold text-[var(--success-text)] tabular-nums focus:border-[var(--border-strong)] focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between px-1 text-xs font-semibold">
-              <span className="text-[var(--text-secondary)]">Bill Total</span>
-              <span className="font-mono text-[var(--accent-text)] tabular-nums">
+            <div className="flex items-center justify-between border-t border-[var(--border-strong)] px-1 pt-2 text-xs font-semibold">
+              <span className="micro-label text-[var(--text-primary)]">
+                Bill Total
+              </span>
+              <span className="font-mono text-sm font-bold text-[var(--accent-text)] tabular-nums">
                 {formatCurrency(itemizedMath.computedGrandTotal, currency)}
               </span>
             </div>
@@ -887,7 +884,7 @@ export function TripExpenseSheet({
           type="button"
           disabled={!canSave}
           onClick={handleSubmit}
-          className="min-h-[48px] w-full rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-45"
+          className="min-h-[44px] w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--accent)] px-4 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-[#F7F5F0] transition-colors duration-150 ease-out hover:bg-[var(--accent-hover)] disabled:opacity-45"
         >
           {initialExpense ? "Save Changes" : "Add Bill to Trip"}
         </button>

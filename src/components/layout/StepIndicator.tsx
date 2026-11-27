@@ -8,11 +8,11 @@ interface StepIndicatorProps {
   onSelectStep: (step: AppStep) => void;
 }
 
-const STEPS: { step: AppStep; label: string }[] = [
-  { step: 1, label: "Start" },
-  { step: 2, label: "Items" },
-  { step: 3, label: "Assign" },
-  { step: 4, label: "Split" },
+const STEPS: { step: AppStep; index: string; label: string }[] = [
+  { step: 1, index: "01", label: "Start" },
+  { step: 2, index: "02", label: "Items" },
+  { step: 3, index: "03", label: "Assign" },
+  { step: 4, index: "04", label: "Split" },
 ];
 
 export function StepIndicator({
@@ -23,9 +23,9 @@ export function StepIndicator({
   return (
     <nav
       aria-label="Split workflow steps"
-      className="mx-auto grid w-full max-w-md grid-cols-4 gap-1.5 px-4 pt-3 pb-1"
+      className="mx-auto grid w-full max-w-lg grid-cols-4 gap-2 px-4 pt-3 pb-1"
     >
-      {STEPS.map(({ step, label }) => {
+      {STEPS.map(({ step, index, label }) => {
         const active = step === currentStep;
         const completed = step < currentStep;
         const reachable = canNavigateTo(step);
@@ -39,24 +39,24 @@ export function StepIndicator({
             className="group flex flex-col gap-1.5 text-left disabled:cursor-not-allowed"
           >
             <div
-              className={`h-1 w-full rounded-full transition-colors ${
+              className={`h-[2px] w-full transition-colors duration-150 ease-out ${
                 active
                   ? "bg-[var(--accent)]"
                   : completed
-                    ? "bg-[var(--accent)]/55"
-                    : "bg-[var(--border-strong)]"
+                    ? "bg-[var(--border-strong)]"
+                    : "bg-[var(--border-subtle)]"
               }`}
             />
             <span
-              className={`text-[11px] font-medium transition-colors ${
+              className={`font-mono text-[10px] uppercase tracking-[0.08em] transition-colors duration-150 ease-out ${
                 active
-                  ? "text-[var(--text-primary)]"
+                  ? "font-semibold text-[var(--accent-text)]"
                   : completed
-                    ? "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                    ? "font-medium text-[var(--text-primary)] group-hover:text-[var(--accent-text)]"
                     : "text-[var(--text-muted)]"
               }`}
             >
-              {step}. {label}
+              {index} {label}
             </span>
           </button>
         );

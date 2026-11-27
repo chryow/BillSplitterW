@@ -1,4 +1,5 @@
 import { formatCurrency } from "./currency";
+import { EDITORIAL_THEME } from "./theme";
 import type { PaymentInfo, SplitCalculationResult } from "./types";
 import { hasPaymentInfo } from "./whatsapp-formatter";
 
@@ -47,7 +48,7 @@ function truncateText(
 }
 
 /**
- * Renders a crisp 2x retina dark-mode PNG split summary card via HTML Canvas
+ * Renders a crisp 2x retina Editorial E-Ink printed-receipt PNG summary card via HTML Canvas
  * suitable for sharing directly into WhatsApp/Instagram group chats.
  */
 export async function generateSplitCardPng(
@@ -63,6 +64,7 @@ export async function generateSplitCardPng(
     dateLabel,
   } = options;
 
+  const { colors, fonts } = EDITORIAL_THEME;
   const cur = split.currency;
   const settledSet = new Set(settledParticipantIds);
   const payer = paidByParticipantId
@@ -111,29 +113,29 @@ export async function generateSplitCardPng(
 
   ctx.scale(scale, scale);
 
-  // App background
-  ctx.fillStyle = "#0A0D12";
+  // Unbleached paper background
+  ctx.fillStyle = colors.paper;
   ctx.fillRect(0, 0, width, totalHeight);
 
-  const sans =
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-  const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
+  const serif = fonts.serif;
+  const sans = fonts.sans;
+  const mono = fonts.mono;
 
   let y = pad;
 
-  // Header card
-  drawRoundedRect(ctx, pad, y, width - pad * 2, headerHeight, 16);
-  ctx.fillStyle = "#12161F";
+  // Header ledger card
+  drawRoundedRect(ctx, pad, y, width - pad * 2, headerHeight, 3);
+  ctx.fillStyle = colors.surface;
   ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.09)";
+  ctx.strokeStyle = colors.ink;
   ctx.lineWidth = 1;
   ctx.stroke();
 
   const innerX = pad + cardPad;
   const rightX = width - pad - cardPad;
 
-  ctx.font = `600 11px ${sans}`;
-  ctx.fillStyle = "#34D399";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.textAlign = "left";
   ctx.fillText(
     `SPLIT SUMMARY${dateLabel ? `  ·  ${dateLabel.toUpperCase()}` : ""}`,
@@ -141,26 +143,26 @@ export async function generateSplitCardPng(
     y + 24
   );
 
-  ctx.font = `700 20px ${sans}`;
-  ctx.fillStyle = "#F8FAFC";
+  ctx.font = `600 21px ${serif}`;
+  ctx.fillStyle = colors.ink;
   ctx.fillText(
-    truncateText(ctx, merchantName.trim() || "Split Bill", width - pad * 2 - 140),
+    truncateText(ctx, merchantName.trim() || "Split Bill", width - pad * 2 - 145),
     innerX,
-    y + 52
+    y + 53
   );
 
   // Grand total on right
   ctx.textAlign = "right";
-  ctx.font = `500 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.font = `600 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   ctx.fillText("GRAND TOTAL", rightX, y + 24);
 
-  ctx.font = `700 19px ${mono}`;
-  ctx.fillStyle = "#34D399";
-  ctx.fillText(formatCurrency(split.grandTotal, cur), rightX, y + 52);
+  ctx.font = `700 18px ${mono}`;
+  ctx.fillStyle = colors.vermilion;
+  ctx.fillText(formatCurrency(split.grandTotal, cur), rightX, y + 53);
 
-  // Divider inside header
-  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+  // Hairline divider inside header
+  ctx.strokeStyle = colors.hairline;
   ctx.beginPath();
   ctx.moveTo(innerX, y + 68);
   ctx.lineTo(rightX, y + 68);
@@ -168,20 +170,20 @@ export async function generateSplitCardPng(
 
   // Sub-meta row
   ctx.textAlign = "left";
-  ctx.font = `500 11px ${sans}`;
-  ctx.fillStyle = "#94A3B8";
+  ctx.font = `500 10px ${mono}`;
+  ctx.fillStyle = colors.graphite;
   const metaBits: string[] = [
-    `Items ${formatCurrency(split.itemsSubtotal, cur)}`,
+    `ITEMS ${formatCurrency(split.itemsSubtotal, cur)}`,
   ];
-  if (split.tax > 0) metaBits.push(`Tax ${formatCurrency(split.tax, cur)}`);
+  if (split.tax > 0) metaBits.push(`TAX ${formatCurrency(split.tax, cur)}`);
   if (split.serviceCharge > 0) {
-    metaBits.push(`Svc ${formatCurrency(split.serviceCharge, cur)}`);
+    metaBits.push(`SVC ${formatCurrency(split.serviceCharge, cur)}`);
   }
   if (split.deliveryFee > 0) {
-    metaBits.push(`Deliv ${formatCurrency(split.deliveryFee, cur)}`);
+    metaBits.push(`DELIV ${formatCurrency(split.deliveryFee, cur)}`);
   }
   if (split.discount > 0) {
-    metaBits.push(`Disc -${formatCurrency(split.discount, cur)}`);
+    metaBits.push(`DISC -${formatCurrency(split.discount, cur)}`);
   }
   ctx.fillText(
     truncateText(ctx, metaBits.join("  ·  "), rightX - innerX),
@@ -191,31 +193,29 @@ export async function generateSplitCardPng(
 
   y += headerHeight + 14;
 
-  // Per-person cards
+  // Per-person ledger cards
   split.people.forEach((person, idx) => {
     const rowH = personRowHeights[idx];
     const isPayer = payer?.participantId === person.participantId;
     const isSettled = !isPayer && settledSet.has(person.participantId);
 
-    drawRoundedRect(ctx, pad, y, width - pad * 2, rowH, 14);
-    ctx.fillStyle = "#12161F";
+    drawRoundedRect(ctx, pad, y, width - pad * 2, rowH, 3);
+    ctx.fillStyle = isSettled ? colors.pressedPaper : colors.surface;
     ctx.fill();
-    ctx.strokeStyle = isSettled
-      ? "rgba(16,185,129,0.35)"
-      : "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = isSettled ? colors.fountainGreen : colors.hairline;
     ctx.lineWidth = 1;
     ctx.stroke();
 
     // Color dot
     ctx.beginPath();
-    ctx.arc(innerX + 5, y + 22, 5, 0, Math.PI * 2);
+    ctx.arc(innerX + 4, y + 22, 4, 0, Math.PI * 2);
     ctx.fillStyle = person.color;
     ctx.fill();
 
     // Name + status
     ctx.textAlign = "left";
     ctx.font = `600 14px ${sans}`;
-    ctx.fillStyle = "#F8FAFC";
+    ctx.fillStyle = colors.ink;
     const statusSuffix = isPayer
       ? "  (Paid bill)"
       : isSettled
@@ -223,14 +223,14 @@ export async function generateSplitCardPng(
         : "";
     ctx.fillText(
       truncateText(ctx, `${person.name}${statusSuffix}`, rightX - innerX - 125),
-      innerX + 18,
+      innerX + 16,
       y + 27
     );
 
     // Person total
     ctx.textAlign = "right";
     ctx.font = `700 15px ${mono}`;
-    ctx.fillStyle = isSettled ? "#64748B" : "#F8FAFC";
+    ctx.fillStyle = isSettled ? colors.fountainGreen : colors.ink;
     ctx.fillText(formatCurrency(person.total, cur), rightX, y + 27);
 
     // Line items (up to 4 + overflow summary)
@@ -246,7 +246,7 @@ export async function generateSplitCardPng(
 
       ctx.textAlign = "left";
       ctx.font = `400 11px ${sans}`;
-      ctx.fillStyle = "#94A3B8";
+      ctx.fillStyle = colors.graphite;
       ctx.fillText(
         truncateText(
           ctx,
@@ -259,7 +259,7 @@ export async function generateSplitCardPng(
 
       ctx.textAlign = "right";
       ctx.font = `500 11px ${mono}`;
-      ctx.fillStyle = "#CBD5E1";
+      ctx.fillStyle = colors.ink;
       ctx.fillText(formatCurrency(item.amount, cur), rightX, itemY);
       itemY += 18;
     }
@@ -267,7 +267,7 @@ export async function generateSplitCardPng(
     if (person.items.length > 4) {
       ctx.textAlign = "left";
       ctx.font = `400 11px ${sans}`;
-      ctx.fillStyle = "#64748B";
+      ctx.fillStyle = colors.graphite;
       ctx.fillText(
         `+${person.items.length - 4} more item${person.items.length - 4 > 1 ? "s" : ""}`,
         innerX,
@@ -292,7 +292,7 @@ export async function generateSplitCardPng(
     if (fees.length > 0) {
       ctx.textAlign = "left";
       ctx.font = `500 10px ${mono}`;
-      ctx.fillStyle = "#64748B";
+      ctx.fillStyle = colors.graphite;
       ctx.fillText(
         truncateText(ctx, fees.join("  ·  "), rightX - innerX),
         innerX,
@@ -306,16 +306,16 @@ export async function generateSplitCardPng(
   // Payment Info block
   if (showPayment && paymentInfo) {
     y += 2;
-    drawRoundedRect(ctx, pad, y, width - pad * 2, paymentBlockHeight, 14);
-    ctx.fillStyle = "#181E2A";
+    drawRoundedRect(ctx, pad, y, width - pad * 2, paymentBlockHeight, 3);
+    ctx.fillStyle = colors.pressedPaper;
     ctx.fill();
-    ctx.strokeStyle = "rgba(16,185,129,0.28)";
+    ctx.strokeStyle = colors.ink;
     ctx.lineWidth = 1;
     ctx.stroke();
 
     ctx.textAlign = "left";
-    ctx.font = `600 11px ${sans}`;
-    ctx.fillStyle = "#34D399";
+    ctx.font = `600 10px ${mono}`;
+    ctx.fillStyle = colors.vermilion;
     ctx.fillText(
       payer ? `TRANSFER TO ${payer.name.toUpperCase()}` : "PAYMENT INFO",
       innerX,
@@ -329,9 +329,13 @@ export async function generateSplitCardPng(
       .filter(Boolean)
       .join("  ·  ");
     ctx.font = `700 14px ${mono}`;
-    ctx.fillStyle = "#F8FAFC";
+    ctx.fillStyle = colors.ink;
     ctx.fillText(
-      truncateText(ctx, acctLine || paymentInfo.accountName.trim(), rightX - innerX),
+      truncateText(
+        ctx,
+        acctLine || paymentInfo.accountName.trim(),
+        rightX - innerX
+      ),
       innerX,
       y + 48
     );
@@ -344,22 +348,35 @@ export async function generateSplitCardPng(
       .join("  ·  ");
     if (subLine) {
       ctx.font = `400 11px ${sans}`;
-      ctx.fillStyle = "#94A3B8";
+      ctx.fillStyle = colors.graphite;
       ctx.fillText(truncateText(ctx, subLine, rightX - innerX), innerX, y + 70);
     }
 
     y += paymentBlockHeight + 10;
   }
 
-  // Footer
-  ctx.textAlign = "center";
-  ctx.font = `500 11px ${sans}`;
-  ctx.fillStyle = "#64748B";
-  const footerNote =
+  // Editorial Colophon Footer
+  ctx.strokeStyle = colors.hairline;
+  ctx.beginPath();
+  ctx.moveTo(pad, y + 8);
+  ctx.lineTo(width - pad, y + 8);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.font = `500 9.5px ${mono}`;
+  ctx.fillStyle = colors.graphite;
+  const leftFooter =
     roundingStep > 0
-      ? `Rounded up to nearest ${formatCurrency(roundingStep, cur)}  ·  BillSplitterW`
-      : "Split with BillSplitterW";
-  ctx.fillText(footerNote, width / 2, y + 24);
+      ? `ROUNDED ${formatCurrency(roundingStep, cur)} · BILLSPLITTERW`
+      : `BILLSPLITTERW · ${EDITORIAL_THEME.version.toUpperCase()}`;
+  ctx.fillText(leftFooter, pad, y + 27);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = colors.graphite;
+  ctx.fillText(EDITORIAL_THEME.colophonLabel, width - pad - 10, y + 27);
+
+  ctx.fillStyle = colors.vermilion;
+  ctx.fillRect(width - pad - 5, y + 21, 5, 5);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((out) => {
