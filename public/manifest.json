@@ -1,0 +1,31 @@
+{
+  "name": "BillSplitterW — Fast Receipt Split",
+  "short_name": "BillSplitterW",
+  "description": "Scan a receipt, assign items with a tap, and share exact WhatsApp splits in seconds.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0D12",
+  "theme_color": "#0A0D12",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
