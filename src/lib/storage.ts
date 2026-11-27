@@ -1,3 +1,4 @@
+import { normalizeCurrencyCode } from "./currency";
 import type { AppStep, BillState, PaymentInfo } from "./types";
 
 const ACTIVE_BILL_KEY = "billsplitterw:active-bill:v1";
@@ -30,9 +31,14 @@ export function loadActiveSession(): StoredSession | null {
     const step = parsed.step;
     const validStep: AppStep =
       step === 1 || step === 2 || step === 3 || step === 4 ? step : 1;
+    const safeCurrency = normalizeCurrencyCode(parsed.bill.currency, "IDR");
     return {
       step: validStep,
-      bill: parsed.bill,
+      bill: {
+        ...parsed.bill,
+        currency: safeCurrency,
+        feeSplitMode: "proportional",
+      },
     };
   } catch {
     return null;

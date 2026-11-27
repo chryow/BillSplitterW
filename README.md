@@ -13,7 +13,7 @@ A fast, minimalist, mobile-first Split Bill Web App (PWA) designed for everyday 
 - **4-Step Fast Workflow:**
   1. **Capture / Manual / Sample Receipt** (Indonesian restaurant sample with PB1, service charge, discount, and multi-qty items).
   2. **Review & Fix** (inline editing, 1-tap **Split Qty** for `qty > 1` items, automatic receipt math check banner).
-  3. **Add People & Assign** (colored participant chips, saved friends, tap-to-assign, **Split All**, Proportional vs Equal fee/discount toggle).
+  3. **Add People & Assign** (colored participant chips, saved friends, tap-to-assign, **Split All**, automatic proportional tax/service/discount).
   4. **Final Breakdown & Share** (per-person cards, collapsible auto-filled Payment Info, 1-tap **Copy WhatsApp Summary**, and optional share link).
 - **Multi-Currency:** Default `IDR` (`Rp 45.000`, zero decimals) + quick switcher for `USD`, `SGD`, `MYR`, `EUR`, and `JPY`.
 - **Exact Math Engine (`src/lib/split-engine.ts`):** Minor-unit arithmetic with largest-remainder rounding guarantees individual totals always sum exactly to the grand total.

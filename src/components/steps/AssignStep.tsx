@@ -15,7 +15,6 @@ import { formatCurrency } from "@/lib/currency";
 import type {
   BillItem,
   BillState,
-  FeeSplitMode,
   Participant,
   SavedFriend,
 } from "@/lib/types";
@@ -127,10 +126,6 @@ export function AssignStep({
         };
       }),
     }));
-  };
-
-  const setFeeMode = (mode: FeeSplitMode) => {
-    onUpdateBill((prev) => ({ ...prev, feeSplitMode: mode }));
   };
 
   const participantById = new Map(bill.participants.map((p) => [p.id, p]));
@@ -269,47 +264,6 @@ export function AssignStep({
             ))}
           </div>
         )}
-      </div>
-
-      {/* Fee & Discount Distribution Toggle */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-primary)]">
-              Tax, Service &amp; Discount Split
-            </p>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              {bill.feeSplitMode === "proportional"
-                ? "Weighted by each person's food subtotal"
-                : "Divided equally across everyone"}
-            </p>
-          </div>
-          <div
-            className="inline-flex shrink-0 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-0.5"
-            role="radiogroup"
-            aria-label="Fee and discount distribution mode"
-          >
-            {(["proportional", "equal"] as const).map((mode) => {
-              const active = bill.feeSplitMode === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setFeeMode(mode)}
-                  className={`min-h-[32px] rounded-lg px-2.5 text-xs font-semibold capitalize transition-colors ${
-                    active
-                      ? "bg-[var(--accent)] text-white"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  {mode}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Tap-to-Assign Items */}

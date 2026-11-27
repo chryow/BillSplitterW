@@ -10,7 +10,7 @@ import { SummaryStep } from "@/components/steps/SummaryStep";
 import { AccountSheet } from "@/components/ui/AccountSheet";
 import { CurrencySheet } from "@/components/ui/CurrencySheet";
 import { PARTICIPANT_COLORS } from "@/lib/config";
-import { normalizeCurrencyCode } from "@/lib/currency";
+import { normalizeCurrencyCode, roundForCurrency } from "@/lib/currency";
 import {
   createEmptyBillState,
   createSampleReceiptState,
@@ -221,7 +221,22 @@ export function BillSplitterApp() {
   };
 
   const handleCurrencyChange = (nextCurrency: CurrencyCode) => {
-    setBill((prev) => ({ ...prev, currency: nextCurrency }));
+    setBill((prev) => ({
+      ...prev,
+      currency: nextCurrency,
+      items: prev.items.map((item) => ({
+        ...item,
+        unitPrice: roundForCurrency(item.unitPrice, nextCurrency),
+        totalPrice: roundForCurrency(item.totalPrice, nextCurrency),
+      })),
+      tax: roundForCurrency(prev.tax, nextCurrency),
+      serviceCharge: roundForCurrency(prev.serviceCharge, nextCurrency),
+      discount: roundForCurrency(prev.discount, nextCurrency),
+      scannedGrandTotal:
+        prev.scannedGrandTotal !== null
+          ? roundForCurrency(prev.scannedGrandTotal, nextCurrency)
+          : null,
+    }));
   };
 
   const handlePaymentInfoChange = (next: PaymentInfo) => {
@@ -249,8 +264,8 @@ export function BillSplitterApp() {
             id: `scan-${Date.now()}-${idx}`,
             name: item.name,
             qty: Math.max(1, Math.round(item.qty || 1)),
-            unitPrice: item.unit_price,
-            totalPrice: item.total_price,
+            unitPrice: roundForCurrency(item.unit_price, detectedCurrency),
+            totalPrice: roundForCurrency(item.total_price, detectedCurrency),
             assigneeIds: [],
           }))
         : [
@@ -271,10 +286,13 @@ export function BillSplitterApp() {
       merchantName: data.merchant_name ?? "",
       currency: detectedCurrency,
       items,
-      tax: data.tax ?? 0,
-      serviceCharge: data.service_charge ?? 0,
-      discount: data.discount ?? 0,
-      scannedGrandTotal: data.grand_total,
+      tax: roundForCurrency(data.tax ?? 0, detectedCurrency),
+      serviceCharge: roundForCurrency(data.service_charge ?? 0, detectedCurrency),
+      discount: roundForCurrency(data.discount ?? 0, detectedCurrency),
+      scannedGrandTotal:
+        data.grand_total !== null
+          ? roundForCurrency(data.grand_total, detectedCurrency)
+          : null,
       warnings: data.warnings ?? [],
       participants:
         prev.participants.length > 0
@@ -286,7 +304,7 @@ export function BillSplitterApp() {
                 color: PARTICIPANT_COLORS[0],
               },
             ],
-      feeSplitMode: prev.feeSplitMode,
+      feeSplitMode: "proportional",
     }));
     setStep(2);
   };
@@ -392,7 +410,7 @@ export function BillSplitterApp() {
       scannedGrandTotal: saved.grand_total,
       warnings: [],
       participants: saved.participants,
-      feeSplitMode: saved.fee_split_mode,
+      feeSplitMode: "proportional",
     });
     setStep(4);
   };
