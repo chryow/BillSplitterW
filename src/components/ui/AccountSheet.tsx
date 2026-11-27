@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Camera,
   Check,
   Clock,
   Copy,
@@ -130,6 +131,15 @@ export function AccountSheet({
               Unlock with Google Sign-In
             </p>
             <ul className="space-y-2 text-xs text-[var(--text-secondary)]">
+              <li className="flex items-center gap-2.5">
+                <Camera className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
+                <span>
+                  <strong className="text-[var(--text-primary)]">
+                    AI Receipt Scanning
+                  </strong>{" "}
+                  — snap a receipt to auto-fill items, tax &amp; promos
+                </span>
+              </li>
               <li className="flex items-center gap-2.5">
                 <Clock className="h-4 w-4 shrink-0 text-[var(--accent-text)]" />
                 <span>

@@ -5,15 +5,13 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/config";
 import { extractReceiptWithGemini } from "@/lib/server/gemini-ocr";
-import {
-  consumeScanRateLimit,
-  extractClientIp,
-} from "@/lib/server/rate-limit";
+import { consumeScanRateLimit } from "@/lib/server/rate-limit";
 import {
   getCachedReceipt,
   hashImageBuffer,
   setCachedReceipt,
 } from "@/lib/server/receipt-cache";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { ScanApiError } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -40,6 +38,34 @@ function hasValidImageMagicBytes(buffer: Buffer): boolean {
 }
 
 export async function POST(request: Request) {
+  // Require authenticated Supabase user so anonymous guests cannot abuse OCR quota
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return errorResponse(
+      {
+        code: "AUTH_REQUIRED",
+        message:
+          "Sign in with Google is required for receipt scanning. You can still use Manual Split or Try Sample Receipt anytime.",
+      },
+      401
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return errorResponse(
+      {
+        code: "AUTH_REQUIRED",
+        message:
+          "Sign in with Google to use AI receipt scanning. Guests can still use Manual Split or Try Sample Receipt.",
+      },
+      401
+    );
+  }
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     return errorResponse(
@@ -129,14 +155,13 @@ export async function POST(request: Request) {
     });
   }
 
-  // Daily per-IP rate limit
-  const clientIp = extractClientIp(request);
-  const rate = consumeScanRateLimit(clientIp, MAX_SCANS_PER_DAY);
+  // Daily per-user rate limit (avoids blocking friends on shared restaurant Wi-Fi)
+  const rate = consumeScanRateLimit(`user:${user.id}`, MAX_SCANS_PER_DAY);
   if (!rate.allowed) {
     return errorResponse(
       {
         code: "RATE_LIMITED",
-        message: `You've reached the daily scan limit (${MAX_SCANS_PER_DAY} scans/day). No worries—you can still split your bill manually!`,
+        message: `You've reached your daily scan limit (${MAX_SCANS_PER_DAY} scans/day). No worries—you can still split your bill manually!`,
         retryAfterSeconds: rate.retryAfterSeconds,
       },
       429,
