@@ -47,11 +47,19 @@ export function loadActiveSession(): StoredSession | null {
         )
       : [];
 
+    const rawDeliveryFee =
+      typeof parsed.bill.deliveryFee === "number" &&
+      Number.isFinite(parsed.bill.deliveryFee) &&
+      parsed.bill.deliveryFee >= 0
+        ? parsed.bill.deliveryFee
+        : 0;
+
     return {
       step: validStep,
       bill: {
         ...parsed.bill,
         currency: safeCurrency,
+        deliveryFee: rawDeliveryFee,
         feeSplitMode: "proportional",
         paidByParticipantId: rawPaidBy,
         settledParticipantIds: rawSettled,

@@ -68,22 +68,28 @@ export function formatPersonNudge(options: PersonNudgeOptions): string {
         `• ${qtyPrefix}${item.name}${sharedSuffix}: ${formatCurrency(item.amount, currency)}`
       );
     }
+  }
 
-    const adjustments: string[] = [];
-    if (person.taxShare > 0) {
-      adjustments.push(`Tax ${formatCurrency(person.taxShare, currency)}`);
+  const adjustments: string[] = [];
+  if (person.taxShare > 0) {
+    adjustments.push(`Tax ${formatCurrency(person.taxShare, currency)}`);
+  }
+  if (person.serviceShare > 0) {
+    adjustments.push(`Svc ${formatCurrency(person.serviceShare, currency)}`);
+  }
+  if (person.deliveryShare > 0) {
+    adjustments.push(`Deliv ${formatCurrency(person.deliveryShare, currency)}`);
+  }
+  if (person.discountShare > 0) {
+    adjustments.push(
+      `Disc -${formatCurrency(person.discountShare, currency)}`
+    );
+  }
+  if (adjustments.length > 0) {
+    if (person.items.length === 0) {
+      lines.push("");
     }
-    if (person.serviceShare > 0) {
-      adjustments.push(`Svc ${formatCurrency(person.serviceShare, currency)}`);
-    }
-    if (person.discountShare > 0) {
-      adjustments.push(
-        `Disc -${formatCurrency(person.discountShare, currency)}`
-      );
-    }
-    if (adjustments.length > 0) {
-      lines.push(`_${adjustments.join(" · ")}_`);
-    }
+    lines.push(`_${adjustments.join(" · ")}_`);
   }
 
   if (hasPaymentInfo(paymentInfo) && paymentInfo) {
@@ -178,6 +184,9 @@ export function formatWhatsAppSummary(options: WhatsAppSummaryOptions): string {
     }
     if (person.serviceShare > 0) {
       adjustments.push(`Svc ${formatCurrency(person.serviceShare, cur)}`);
+    }
+    if (person.deliveryShare > 0) {
+      adjustments.push(`Deliv ${formatCurrency(person.deliveryShare, cur)}`);
     }
     if (person.discountShare > 0) {
       adjustments.push(`Disc -${formatCurrency(person.discountShare, cur)}`);

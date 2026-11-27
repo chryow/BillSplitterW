@@ -62,7 +62,8 @@ export function ReviewStep({
     bill.serviceCharge,
     bill.discount,
     bill.scannedGrandTotal,
-    cur
+    cur,
+    bill.deliveryFee
   );
 
   const updateItem = (id: string, patch: Partial<BillItem>) => {
@@ -369,7 +370,7 @@ export function ReviewStep({
             Fees &amp; Discounts
           </h2>
           <span className="text-[11px] text-[var(--text-muted)]">
-            Always split proportionally
+            Tax/Svc proportional · Delivery equal
           </span>
         </div>
 
@@ -433,6 +434,51 @@ export function ReviewStep({
                   }))
                 }
                 ariaLabel="Service charge amount"
+                className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Delivery Fee (Ongkir / App / Packaging) */}
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium text-[var(--text-secondary)]">
+                Delivery Fee{" "}
+                <span className="font-normal text-[var(--text-muted)]">
+                  (Ongkir / App)
+                </span>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-[var(--text-muted)]">
+                  Split equally among orderers
+                </span>
+                {bill.deliveryFee > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateBill((prev) => ({ ...prev, deliveryFee: 0 }))
+                    }
+                    className="rounded-md px-1.5 py-0.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-1 flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                {currencyInfo.symbol}
+              </span>
+              <AmountInput
+                value={bill.deliveryFee}
+                currency={cur}
+                onChange={(nextDelivery) =>
+                  onUpdateBill((prev) => ({
+                    ...prev,
+                    deliveryFee: nextDelivery,
+                  }))
+                }
+                ariaLabel="Delivery fee amount"
                 className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
               />
             </div>

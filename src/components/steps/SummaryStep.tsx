@@ -92,6 +92,7 @@ export function SummaryStep({
         items: bill.items,
         tax: bill.tax,
         serviceCharge: bill.serviceCharge,
+        deliveryFee: bill.deliveryFee,
         discount: bill.discount,
         participants: bill.participants,
         feeSplitMode: "proportional",
@@ -101,6 +102,7 @@ export function SummaryStep({
       bill.items,
       bill.tax,
       bill.serviceCharge,
+      bill.deliveryFee,
       bill.discount,
       bill.participants,
     ]
@@ -249,6 +251,14 @@ export function SummaryStep({
               Svc:{" "}
               <strong className="font-mono text-[var(--text-primary)] tabular-nums">
                 {formatCurrency(split.serviceCharge, cur)}
+              </strong>
+            </span>
+          )}
+          {split.deliveryFee > 0 && (
+            <span>
+              Delivery:{" "}
+              <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+                {formatCurrency(split.deliveryFee, cur)}
               </strong>
             </span>
           )}
@@ -482,6 +492,7 @@ export function SummaryStep({
 
               {(person.taxShare > 0 ||
                 person.serviceShare > 0 ||
+                person.deliveryShare > 0 ||
                 person.discountShare > 0 ||
                 (showSettleButton && !isSettled)) && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
@@ -494,6 +505,11 @@ export function SummaryStep({
                     {person.serviceShare > 0 && (
                       <span className="font-mono tabular-nums">
                         Svc +{formatCurrency(person.serviceShare, cur)}
+                      </span>
+                    )}
+                    {person.deliveryShare > 0 && (
+                      <span className="font-mono tabular-nums">
+                        Deliv +{formatCurrency(person.deliveryShare, cur)}
                       </span>
                     )}
                     {person.discountShare > 0 && (

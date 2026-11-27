@@ -107,4 +107,34 @@ describe("fx & currency auto-detection", () => {
     );
     expect(convertAmount(10, 16200, "IDR")).toBe(162000);
   });
+
+  it("converts food delivery_fee alongside items, tax, and discount during FX conversion", () => {
+    const deliveryReceipt: ScannedReceiptResponse = {
+      merchant_name: "GoFood Martabak",
+      currency: "IDR",
+      items: [
+        { name: "Martabak Manis", qty: 1, unit_price: 80000, total_price: 80000 },
+      ],
+      subtotal: 80000,
+      tax: 8000,
+      service_charge: 0,
+      delivery_fee: 18000,
+      discount: 10000,
+      grand_total: 96000,
+      warnings: [],
+    };
+
+    const rate = 1 / 12000; // 1 SGD = Rp 12,000
+    const converted = convertReceiptToCurrency(
+      deliveryReceipt,
+      "IDR",
+      "SGD",
+      rate,
+      "live"
+    );
+
+    expect(converted.currency).toBe("SGD");
+    expect(converted.delivery_fee).toBe(1.5);
+    expect(converted.grand_total).toBe(8);
+  });
 });

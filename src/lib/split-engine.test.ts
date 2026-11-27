@@ -546,4 +546,124 @@ describe("split-engine", () => {
     expect(roundedHalf.split.sumOfPeopleTotals).toBe(10.5);
     expect(roundedHalf.roundingSurplus).toBe(0.5);
   });
+
+  it("splits food delivery fee equally among orderers only while keeping tax & discount proportional", () => {
+    // You ordered Rp 60,000 (60%), Budi ordered Rp 40,000 (40%), Sari ordered nothing (0%)
+    // Tax = Rp 10,000 (proportional -> 6k / 4k / 0)
+    // Discount = Rp 10,000 (proportional -> 6k / 4k / 0)
+    // Delivery Fee = Rp 15,000 (equal among orderers You & Budi -> 7,500 / 7,500 / 0)
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Bento Set A",
+        qty: 1,
+        unitPrice: 60000,
+        totalPrice: 60000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Ramen Bowl",
+        qty: 1,
+        unitPrice: 40000,
+        totalPrice: 40000,
+        assigneeIds: ["p2"],
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 10000,
+      serviceCharge: 0,
+      deliveryFee: 15000,
+      discount: 10000,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.deliveryFee).toBe(15000);
+    expect(result.grandTotal).toBe(115000);
+    expect(result.sumOfPeopleTotals).toBe(115000);
+
+    // You: 60,000 + 6,000 tax - 6,000 disc + 7,500 delivery = 67,500
+    expect(result.people[0].taxShare).toBe(6000);
+    expect(result.people[0].discountShare).toBe(6000);
+    expect(result.people[0].deliveryShare).toBe(7500);
+    expect(result.people[0].total).toBe(67500);
+
+    // Budi: 40,000 + 4,000 tax - 4,000 disc + 7,500 delivery = 47,500
+    expect(result.people[1].taxShare).toBe(4000);
+    expect(result.people[1].discountShare).toBe(4000);
+    expect(result.people[1].deliveryShare).toBe(7500);
+    expect(result.people[1].total).toBe(47500);
+
+    // Sari ordered nothing -> pays 0 delivery and 0 total
+    expect(result.people[2].deliveryShare).toBe(0);
+    expect(result.people[2].total).toBe(0);
+  });
+
+  it("distributes 3-way delivery fee remainder cleanly and falls back to all participants if no items assigned", () => {
+    const orderedResult = calculateSplit({
+      currency: "IDR",
+      items: [
+        {
+          id: "i1",
+          name: "Shared Drinks",
+          qty: 3,
+          unitPrice: 20000,
+          totalPrice: 60000,
+          assigneeIds: ["p1", "p2", "p3"],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 0,
+      deliveryFee: 10000,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(orderedResult.grandTotal).toBe(70000);
+    expect(orderedResult.sumOfPeopleTotals).toBe(70000);
+    expect(
+      orderedResult.people.map((p) => p.deliveryShare).sort((a, b) => b - a)
+    ).toEqual([3334, 3333, 3333]);
+
+    // Fallback when no items are assigned yet: splits delivery fee across all participants
+    const fallbackResult = calculateSplit({
+      currency: "IDR",
+      items: [],
+      tax: 0,
+      serviceCharge: 0,
+      deliveryFee: 12000,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(fallbackResult.grandTotal).toBe(12000);
+    expect(fallbackResult.sumOfPeopleTotals).toBe(12000);
+    expect(fallbackResult.people.map((p) => p.deliveryShare)).toEqual([
+      4000, 4000, 4000,
+    ]);
+  });
+
+  it("includes deliveryFee in checkReceiptMath calculation", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Ayam Geprek",
+        qty: 2,
+        unitPrice: 25000,
+        totalPrice: 50000,
+        assigneeIds: [],
+      },
+    ];
+    // 50,000 food + 5,000 tax + 0 service + 14,000 delivery - 10,000 promo = 59,000
+    const check = checkReceiptMath(items, 5000, 0, 10000, 59000, "IDR", 14000);
+    expect(check.computedGrandTotal).toBe(59000);
+    expect(check.isMatch).toBe(true);
+    expect(check.difference).toBe(0);
+  });
 });

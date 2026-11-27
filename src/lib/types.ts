@@ -26,6 +26,7 @@ export interface ScannedReceiptResponse {
   subtotal: number | null;
   tax: number;
   service_charge: number;
+  delivery_fee?: number;
   discount: number;
   grand_total: number | null;
   warnings: string[];
@@ -68,6 +69,7 @@ export interface BillState {
   items: BillItem[];
   tax: number;
   serviceCharge: number;
+  deliveryFee: number;
   discount: number;
   scannedGrandTotal: number | null;
   warnings: string[];
@@ -99,6 +101,7 @@ export interface PersonSplit {
   itemSubtotal: number;
   taxShare: number;
   serviceShare: number;
+  deliveryShare: number;
   discountShare: number;
   total: number;
 }
@@ -108,6 +111,7 @@ export interface SplitCalculationResult {
   itemsSubtotal: number;
   tax: number;
   serviceCharge: number;
+  deliveryFee: number;
   discount: number;
   grandTotal: number;
   assignedSubtotal: number;
@@ -144,6 +148,7 @@ export interface SavedBillSummary {
   subtotal: number;
   tax: number;
   service_charge: number;
+  delivery_fee: number;
   discount: number;
   grand_total: number;
   items: BillItem[];
@@ -214,6 +219,7 @@ export interface TripExpense {
   items?: BillItem[];
   tax?: number;
   serviceCharge?: number;
+  deliveryFee?: number;
   discount?: number;
 }
 

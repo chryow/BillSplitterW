@@ -422,6 +422,10 @@ export function BillSplitterApp() {
             exp.serviceCharge !== undefined
               ? convertAmount(exp.serviceCharge, rate, nextCurrency)
               : undefined,
+          deliveryFee:
+            exp.deliveryFee !== undefined
+              ? convertAmount(exp.deliveryFee, rate, nextCurrency)
+              : undefined,
           discount:
             exp.discount !== undefined
               ? convertAmount(exp.discount, rate, nextCurrency)
@@ -464,6 +468,7 @@ export function BillSplitterApp() {
       bill.items.some((i) => i.totalPrice > 0) ||
       bill.tax > 0 ||
       bill.serviceCharge > 0 ||
+      bill.deliveryFee > 0 ||
       bill.discount > 0;
 
     if (!hasAmounts) {
@@ -497,6 +502,7 @@ export function BillSplitterApp() {
       }),
       tax: convertAmount(prev.tax, rate, nextCurrency),
       serviceCharge: convertAmount(prev.serviceCharge, rate, nextCurrency),
+      deliveryFee: convertAmount(prev.deliveryFee, rate, nextCurrency),
       discount: convertAmount(prev.discount, rate, nextCurrency),
       scannedGrandTotal:
         prev.scannedGrandTotal !== null
@@ -546,6 +552,7 @@ export function BillSplitterApp() {
       }),
       tax: convertAmount(prev.tax, inverseRate, origCur),
       serviceCharge: convertAmount(prev.serviceCharge, inverseRate, origCur),
+      deliveryFee: convertAmount(prev.deliveryFee, inverseRate, origCur),
       discount: convertAmount(prev.discount, inverseRate, origCur),
       scannedGrandTotal:
         conv.originalGrandTotal !== null
@@ -720,6 +727,7 @@ export function BillSplitterApp() {
           data.service_charge ?? 0,
           detectedCurrency
         ),
+        deliveryFee: roundForCurrency(data.delivery_fee ?? 0, detectedCurrency),
         discount: roundForCurrency(data.discount ?? 0, detectedCurrency),
         scannedGrandTotal:
           data.grand_total !== null
@@ -975,6 +983,11 @@ export function BillSplitterApp() {
 
     const convertedTax = convertAmount(bill.tax, rate, targetCur);
     const convertedService = convertAmount(bill.serviceCharge, rate, targetCur);
+    const convertedDeliveryFee = convertAmount(
+      bill.deliveryFee,
+      rate,
+      targetCur
+    );
     const convertedDiscount = convertAmount(bill.discount, rate, targetCur);
 
     const mappedPayerId =
@@ -988,7 +1001,8 @@ export function BillSplitterApp() {
       convertedService,
       convertedDiscount,
       null,
-      targetCur
+      targetCur,
+      convertedDeliveryFee
     ).computedGrandTotal;
 
     const newExpense: TripExpense = {
@@ -1003,6 +1017,7 @@ export function BillSplitterApp() {
       items: mappedItems,
       tax: convertedTax,
       serviceCharge: convertedService,
+      deliveryFee: convertedDeliveryFee,
       discount: convertedDiscount,
     };
 
@@ -1096,6 +1111,7 @@ export function BillSplitterApp() {
       items: saved.items,
       tax: saved.tax,
       serviceCharge: saved.service_charge,
+      deliveryFee: saved.delivery_fee,
       discount: saved.discount,
       scannedGrandTotal: saved.grand_total,
       warnings: [],
@@ -1142,6 +1158,7 @@ export function BillSplitterApp() {
       ],
       tax: 0,
       serviceCharge: 0,
+      deliveryFee: 0,
       discount: 0,
       scannedGrandTotal: null,
       warnings: [],
@@ -1222,9 +1239,17 @@ export function BillSplitterApp() {
         bill.serviceCharge,
         bill.discount,
         null,
-        bill.currency
+        bill.currency,
+        bill.deliveryFee
       ).computedGrandTotal,
-    [bill.items, bill.tax, bill.serviceCharge, bill.discount, bill.currency]
+    [
+      bill.items,
+      bill.tax,
+      bill.serviceCharge,
+      bill.deliveryFee,
+      bill.discount,
+      bill.currency,
+    ]
   );
 
   const headerCurrency =
