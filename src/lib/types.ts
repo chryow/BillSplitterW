@@ -1,4 +1,4 @@
-export type CurrencyCode = "IDR" | "USD" | "SGD" | "MYR" | "EUR" | "JPY";
+export type CurrencyCode = "IDR" | "USD" | "SGD" | "MYR" | "EUR" | "JPY" | "TWD";
 
 export type FeeSplitMode = "proportional" | "equal";
 

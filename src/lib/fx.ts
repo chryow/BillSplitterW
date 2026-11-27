@@ -18,6 +18,7 @@ export const FALLBACK_RATES_PER_USD: Record<CurrencyCode, number> = {
   MYR: 4.45,
   EUR: 0.92,
   JPY: 152,
+  TWD: 32.5,
 };
 
 export interface ExchangeRateResult {
@@ -40,7 +41,7 @@ export function getFallbackExchangeRate(
 export function getFallbackRateTable(
   base: CurrencyCode
 ): Record<CurrencyCode, number> {
-  const codes: CurrencyCode[] = ["IDR", "USD", "SGD", "MYR", "EUR", "JPY"];
+  const codes: CurrencyCode[] = ["IDR", "USD", "SGD", "MYR", "EUR", "JPY", "TWD"];
   const table = {} as Record<CurrencyCode, number>;
   for (const code of codes) {
     table[code] = getFallbackExchangeRate(base, code);
@@ -82,10 +83,13 @@ export function formatExchangeRateLabel(
 const INDONESIAN_CUES_REGEX =
   /\b(pb1|ppn|rp\.?|rupiah|tunai|kembalian|diskon|nasi|ayam|mie|soto|bakso|kopi|teh|es\s|jl\.?|jakarta|bandung|bali|surabaya|senopati|kemang|warung|resto)\b/i;
 
+const TAIWAN_CUES_REGEX =
+  /(nt\$|ntd|twd|新台幣|台幣|統一發票|電子發票|台北|臺北|新北|台中|臺中|高雄|台南|臺南|服務費|外送費)/i;
+
 /**
  * Determines the receipt's actual currency from Gemini's output + defensive heuristics.
  * Prevents unlabeled Indonesian receipts (e.g. "400.000" without "Rp") from being
- * mislabeled as SGD/USD/MYR/EUR ("S$400,000").
+ * mislabeled as SGD/USD/MYR/EUR ("S$400,000"), and detects Taiwanese receipts (TWD).
  */
 export function inferReceiptCurrency(
   receipt: ScannedReceiptResponse
@@ -104,6 +108,7 @@ export function inferReceiptCurrency(
     ...receipt.items.map((i) => i.name),
   ].join(" ");
   const hasIndonesianCue = INDONESIAN_CUES_REGEX.test(allText);
+  const hasTaiwanCue = TAIWAN_CUES_REGEX.test(allText);
 
   const medianPrice =
     positivePrices.length > 0
@@ -141,7 +146,10 @@ export function inferReceiptCurrency(
     return explicit;
   }
 
-  // Gemini returned null: infer IDR when Indonesian cues or unmistakable IDR magnitudes exist
+  // Gemini returned null: infer TWD or IDR when clear regional cues exist
+  if (hasTaiwanCue && allIntegers && medianPrice > 0) {
+    return "TWD";
+  }
   if (hasIndonesianCue && medianPrice >= 1000) {
     return "IDR";
   }

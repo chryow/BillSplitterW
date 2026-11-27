@@ -137,4 +137,39 @@ describe("fx & currency auto-detection", () => {
     expect(converted.delivery_fee).toBe(1.5);
     expect(converted.grand_total).toBe(8);
   });
+
+  it("infers TWD on Taiwanese receipts and converts TWD to IDR accurately", () => {
+    const taiwanReceipt: ScannedReceiptResponse = {
+      merchant_name: "鼎泰豐 台北信義店",
+      currency: null,
+      items: [
+        { name: "小籠包", qty: 2, unit_price: 250, total_price: 500 },
+        { name: "牛肉麵", qty: 1, unit_price: 300, total_price: 300 },
+      ],
+      subtotal: 800,
+      tax: 0,
+      service_charge: 80,
+      delivery_fee: 0,
+      discount: 0,
+      grand_total: 880,
+      warnings: [],
+    };
+
+    expect(inferReceiptCurrency(taiwanReceipt)).toBe("TWD");
+
+    const rate = getFallbackExchangeRate("TWD", "IDR");
+    const converted = convertReceiptToCurrency(
+      taiwanReceipt,
+      "TWD",
+      "IDR",
+      rate,
+      "fallback"
+    );
+
+    expect(converted.currency).toBe("IDR");
+    expect(converted.grand_total).toBeGreaterThan(350000);
+    expect(converted.grand_total).toBeLessThan(550000);
+    expect(converted.conversion?.fromCurrency).toBe("TWD");
+    expect(converted.conversion?.toCurrency).toBe("IDR");
+  });
 });

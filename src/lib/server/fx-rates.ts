@@ -11,6 +11,7 @@ const SUPPORTED_CODES: CurrencyCode[] = [
   "MYR",
   "EUR",
   "JPY",
+  "TWD",
 ];
 
 const FX_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
