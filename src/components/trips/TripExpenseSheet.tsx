@@ -187,6 +187,7 @@ export function TripExpenseSheet({
         "file",
         new File([processed.blob], "receipt.jpg", { type: processed.mimeType })
       );
+      formData.append("targetCurrency", currency);
 
       const response = await fetch("/api/scan-receipt", {
         method: "POST",
@@ -250,8 +251,24 @@ export function TripExpenseSheet({
             ];
       setItems(parsedItems);
       setExpandedItemId(parsedItems[0]?.id ?? null);
+
+      const notices: string[] = [];
+      if (payload.conversion) {
+        const { fromCurrency, toCurrency, rate, originalGrandTotal } =
+          payload.conversion;
+        const rateText =
+          rate < 0.05
+            ? `1 ${toCurrency} ≈ ${formatCurrency(1 / rate, fromCurrency)}`
+            : `1 ${fromCurrency} ≈ ${formatCurrency(rate, toCurrency)}`;
+        notices.push(
+          `Auto-converted from ${fromCurrency}${originalGrandTotal ? ` (${formatCurrency(originalGrandTotal, fromCurrency)})` : ""} → ${toCurrency} (${rateText})`
+        );
+      }
       if (payload.warnings.length > 0) {
-        setScanBanner(payload.warnings.join(" • "));
+        notices.push(...payload.warnings);
+      }
+      if (notices.length > 0) {
+        setScanBanner(notices.join(" • "));
       }
     } catch (err) {
       setScanBanner(

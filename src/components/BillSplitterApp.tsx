@@ -12,6 +12,11 @@ import { SummaryStep } from "@/components/steps/SummaryStep";
 import { PARTICIPANT_COLORS } from "@/lib/config";
 import { normalizeCurrencyCode, roundForCurrency } from "@/lib/currency";
 import {
+  convertAmount,
+  formatExchangeRateLabel,
+  getFallbackExchangeRate,
+} from "@/lib/fx";
+import {
   createEmptyBillState,
   createSampleReceiptState,
 } from "@/lib/sample-receipt";
@@ -355,32 +360,202 @@ export function BillSplitterApp() {
     document.documentElement.setAttribute("data-theme", next);
   };
 
-  const handleCurrencyChange = (nextCurrency: CurrencyCode) => {
+  const fetchClientExchangeRate = useCallback(
+    async (
+      from: CurrencyCode,
+      to: CurrencyCode
+    ): Promise<{ rate: number; source: "live" | "fallback" }> => {
+      if (from === to) return { rate: 1, source: "live" };
+      try {
+        const res = await fetch(`/api/fx-rates?base=${from}`);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            rates?: Record<string, number>;
+            source?: "live" | "fallback";
+          };
+          const rate = data.rates?.[to];
+          if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
+            return { rate, source: data.source ?? "live" };
+          }
+        }
+      } catch {
+        // Fallback below
+      }
+      return {
+        rate: getFallbackExchangeRate(from, to),
+        source: "fallback",
+      };
+    },
+    []
+  );
+
+  const handleCurrencyChange = async (nextCurrency: CurrencyCode) => {
     if (mode === "trips" && activeTripId) {
+      const currentTrip = trips.find((t) => t.id === activeTripId);
+      if (!currentTrip || currentTrip.currency === nextCurrency) return;
+
+      const prevCurrency = currentTrip.currency;
+      const hasAmounts = currentTrip.expenses.some((e) => e.amount > 0);
+      if (!hasAmounts) {
+        handleUpdateTrip(activeTripId, (prev) => ({
+          ...prev,
+          currency: nextCurrency,
+          updatedAt: new Date().toISOString(),
+        }));
+        return;
+      }
+
+      const { rate } = await fetchClientExchangeRate(prevCurrency, nextCurrency);
+      const rawSnapshot = currentTrip;
+
       handleUpdateTrip(activeTripId, (prev) => ({
         ...prev,
         currency: nextCurrency,
+        expenses: prev.expenses.map((exp) => ({
+          ...exp,
+          amount: convertAmount(exp.amount, rate, nextCurrency),
+          tax:
+            exp.tax !== undefined
+              ? convertAmount(exp.tax, rate, nextCurrency)
+              : undefined,
+          serviceCharge:
+            exp.serviceCharge !== undefined
+              ? convertAmount(exp.serviceCharge, rate, nextCurrency)
+              : undefined,
+          discount:
+            exp.discount !== undefined
+              ? convertAmount(exp.discount, rate, nextCurrency)
+              : undefined,
+          items: exp.items?.map((item) => {
+            const total = convertAmount(item.totalPrice, rate, nextCurrency);
+            return {
+              ...item,
+              totalPrice: total,
+              unitPrice: roundForCurrency(
+                total / Math.max(1, item.qty),
+                nextCurrency
+              ),
+            };
+          }),
+        })),
         updatedAt: new Date().toISOString(),
+      }));
+
+      showToast(
+        `Converted ${prevCurrency} → ${nextCurrency} (${formatExchangeRateLabel(prevCurrency, nextCurrency, rate)})`,
+        {
+          undoLabel: "Keep numbers",
+          onUndo: () => {
+            handleUpdateTrip(activeTripId, () => ({
+              ...rawSnapshot,
+              currency: nextCurrency,
+              updatedAt: new Date().toISOString(),
+            }));
+            setToast(null);
+          },
+        }
+      );
+      return;
+    }
+
+    if (bill.currency === nextCurrency) return;
+    const prevCurrency = bill.currency;
+    const hasAmounts =
+      bill.items.some((i) => i.totalPrice > 0) ||
+      bill.tax > 0 ||
+      bill.serviceCharge > 0 ||
+      bill.discount > 0;
+
+    if (!hasAmounts) {
+      setBill((prev) => ({
+        ...prev,
+        currency: nextCurrency,
+        conversion: null,
       }));
       return;
     }
 
+    const { rate, source } = await fetchClientExchangeRate(
+      prevCurrency,
+      nextCurrency
+    );
+    const snapshot = bill;
+
     setBill((prev) => ({
       ...prev,
       currency: nextCurrency,
-      items: prev.items.map((item) => ({
-        ...item,
-        unitPrice: roundForCurrency(item.unitPrice, nextCurrency),
-        totalPrice: roundForCurrency(item.totalPrice, nextCurrency),
-      })),
-      tax: roundForCurrency(prev.tax, nextCurrency),
-      serviceCharge: roundForCurrency(prev.serviceCharge, nextCurrency),
-      discount: roundForCurrency(prev.discount, nextCurrency),
+      items: prev.items.map((item) => {
+        const total = convertAmount(item.totalPrice, rate, nextCurrency);
+        return {
+          ...item,
+          totalPrice: total,
+          unitPrice: roundForCurrency(
+            total / Math.max(1, item.qty),
+            nextCurrency
+          ),
+        };
+      }),
+      tax: convertAmount(prev.tax, rate, nextCurrency),
+      serviceCharge: convertAmount(prev.serviceCharge, rate, nextCurrency),
+      discount: convertAmount(prev.discount, rate, nextCurrency),
       scannedGrandTotal:
         prev.scannedGrandTotal !== null
-          ? roundForCurrency(prev.scannedGrandTotal, nextCurrency)
+          ? convertAmount(prev.scannedGrandTotal, rate, nextCurrency)
           : null,
+      conversion: {
+        fromCurrency: prevCurrency,
+        toCurrency: nextCurrency,
+        rate,
+        source,
+        originalGrandTotal: prev.scannedGrandTotal,
+      },
     }));
+
+    showToast(
+      `Converted ${prevCurrency} → ${nextCurrency} (${formatExchangeRateLabel(prevCurrency, nextCurrency, rate)})`,
+      {
+        undoLabel: "Keep numbers",
+        onUndo: () => {
+          setBill({
+            ...snapshot,
+            currency: nextCurrency,
+            conversion: null,
+          });
+          setToast(null);
+        },
+      }
+    );
+  };
+
+  const handleRevertConversion = () => {
+    const conv = bill.conversion;
+    if (!conv || conv.rate <= 0) return;
+    const inverseRate = 1 / conv.rate;
+    const origCur = conv.fromCurrency;
+
+    setBill((prev) => ({
+      ...prev,
+      currency: origCur,
+      items: prev.items.map((item) => {
+        const total = convertAmount(item.totalPrice, inverseRate, origCur);
+        return {
+          ...item,
+          totalPrice: total,
+          unitPrice: roundForCurrency(total / Math.max(1, item.qty), origCur),
+        };
+      }),
+      tax: convertAmount(prev.tax, inverseRate, origCur),
+      serviceCharge: convertAmount(prev.serviceCharge, inverseRate, origCur),
+      discount: convertAmount(prev.discount, inverseRate, origCur),
+      scannedGrandTotal:
+        conv.originalGrandTotal !== null
+          ? conv.originalGrandTotal
+          : prev.scannedGrandTotal !== null
+            ? convertAmount(prev.scannedGrandTotal, inverseRate, origCur)
+            : null,
+      conversion: null,
+    }));
+    showToast(`Switched back to original ${origCur}`);
   };
 
   const handlePaymentInfoChange = (next: PaymentInfo) => {
@@ -551,6 +726,7 @@ export function BillSplitterApp() {
             ? roundForCurrency(data.grand_total, detectedCurrency)
             : null,
         warnings: data.warnings ?? [],
+        conversion: data.conversion ?? null,
         participants,
         feeSplitMode: "proportional",
         paidByParticipantId:
@@ -741,9 +917,15 @@ export function BillSplitterApp() {
    * Sends the active Single Bill from Step 4 into an existing Trip as an itemized
    * TripExpense, mapping matching participant names cleanly and adding any missing crew.
    */
-  const handleAddSingleBillToTrip = (tripId: string) => {
+  const handleAddSingleBillToTrip = async (tripId: string) => {
     const targetTrip = trips.find((t) => t.id === tripId);
     if (!targetTrip) return;
+
+    const targetCur = targetTrip.currency;
+    const { rate } =
+      bill.currency !== targetCur
+        ? await fetchClientExchangeRate(bill.currency, targetCur)
+        : { rate: 1 };
 
     const nextMembers: TripMember[] = [...targetTrip.members];
     const participantIdToMemberId = new Map<string, string>();
@@ -778,12 +960,22 @@ export function BillSplitterApp() {
               )
           )
         : undefined;
+      const convertedTotal = convertAmount(item.totalPrice, rate, targetCur);
       return {
         ...item,
+        totalPrice: convertedTotal,
+        unitPrice: roundForCurrency(
+          convertedTotal / Math.max(1, item.qty),
+          targetCur
+        ),
         assigneeIds: mappedAssignees,
         ...(mappedShares ? { assigneeShares: mappedShares } : {}),
       };
     });
+
+    const convertedTax = convertAmount(bill.tax, rate, targetCur);
+    const convertedService = convertAmount(bill.serviceCharge, rate, targetCur);
+    const convertedDiscount = convertAmount(bill.discount, rate, targetCur);
 
     const mappedPayerId =
       (bill.paidByParticipantId
@@ -791,12 +983,12 @@ export function BillSplitterApp() {
         : null) ?? nextMembers[0]?.id ?? "";
 
     const total = checkReceiptMath(
-      bill.items,
-      bill.tax,
-      bill.serviceCharge,
-      bill.discount,
+      mappedItems,
+      convertedTax,
+      convertedService,
+      convertedDiscount,
       null,
-      bill.currency
+      targetCur
     ).computedGrandTotal;
 
     const newExpense: TripExpense = {
@@ -809,9 +1001,9 @@ export function BillSplitterApp() {
       amount: total,
       assigneeIds: nextMembers.map((m) => m.id),
       items: mappedItems,
-      tax: bill.tax,
-      serviceCharge: bill.serviceCharge,
-      discount: bill.discount,
+      tax: convertedTax,
+      serviceCharge: convertedService,
+      discount: convertedDiscount,
     };
 
     handleUpdateTrip(tripId, (prev) => ({
@@ -823,7 +1015,11 @@ export function BillSplitterApp() {
 
     setMode("trips");
     setActiveTripId(tripId);
-    showToast(`Added "${newExpense.title}" to ${targetTrip.name}`);
+    showToast(
+      bill.currency !== targetCur
+        ? `Converted (${bill.currency} → ${targetCur}) & added to ${targetTrip.name}`
+        : `Added "${newExpense.title}" to ${targetTrip.name}`
+    );
   };
 
   // --- Auth & Account handlers ---
@@ -1151,6 +1347,7 @@ export function BillSplitterApp() {
                 bill={bill}
                 onUpdateBill={setBill}
                 onDeleteItemWithUndo={handleDeleteItemWithUndo}
+                onRevertConversion={handleRevertConversion}
                 onOpenCurrency={() => setCurrencyOpen(true)}
                 onBack={() => setStep(1)}
                 onNext={() => setStep(3)}

@@ -4,6 +4,12 @@ import {
   MAX_SCANS_PER_DAY,
   MAX_UPLOAD_BYTES,
 } from "@/lib/config";
+import { isSupportedCurrency } from "@/lib/currency";
+import {
+  convertReceiptToCurrency,
+  inferReceiptCurrency,
+} from "@/lib/fx";
+import { getExchangeRate } from "@/lib/server/fx-rates";
 import { extractReceiptWithGemini } from "@/lib/server/gemini-ocr";
 import {
   getPersistentCachedReceipt,
@@ -15,7 +21,11 @@ import {
   getScanQuotaForUser,
 } from "@/lib/server/scan-quota";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ScanApiError } from "@/lib/types";
+import type {
+  CurrencyCode,
+  ScanApiError,
+  ScannedReceiptResponse,
+} from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -38,6 +48,29 @@ function hasValidImageMagicBytes(buffer: Buffer): boolean {
     buffer.subarray(0, 4).toString("ascii") === "RIFF" &&
     buffer.subarray(8, 12).toString("ascii") === "WEBP";
   return isJpeg || isPng || isWebp;
+}
+
+async function maybeConvertToTargetCurrency(
+  receipt: ScannedReceiptResponse,
+  targetCurrency: CurrencyCode | null
+): Promise<ScannedReceiptResponse> {
+  const detected = inferReceiptCurrency(receipt);
+  const normalizedReceipt: ScannedReceiptResponse = detected
+    ? { ...receipt, currency: detected }
+    : receipt;
+
+  if (!targetCurrency || !detected || detected === targetCurrency) {
+    return normalizedReceipt;
+  }
+
+  const fx = await getExchangeRate(detected, targetCurrency);
+  return convertReceiptToCurrency(
+    normalizedReceipt,
+    detected,
+    targetCurrency,
+    fx.rate,
+    fx.source
+  );
 }
 
 export async function POST(request: Request) {
@@ -94,6 +127,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const rawTarget = formData.get("targetCurrency");
+  const targetCurrency: CurrencyCode | null =
+    typeof rawTarget === "string" && isSupportedCurrency(rawTarget)
+      ? (rawTarget.toUpperCase() as CurrencyCode)
+      : null;
+
   const file = formData.get("file");
   if (!(file instanceof File)) {
     return errorResponse(
@@ -148,12 +187,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // Two-tier SHA-256 deduplication cache (memory + Supabase ocr_cache)
+  // Two-tier SHA-256 deduplication cache (stores original-currency receipt, converts dynamically to targetCurrency)
   const imageHash = hashImageBuffer(buffer);
   const cached = await getPersistentCachedReceipt(supabase, imageHash);
   if (cached) {
-    const quota = await getScanQuotaForUser(supabase, user.id, MAX_SCANS_PER_DAY);
-    return NextResponse.json(cached.data, {
+    const [quota, finalReceipt] = await Promise.all([
+      getScanQuotaForUser(supabase, user.id, MAX_SCANS_PER_DAY),
+      maybeConvertToTargetCurrency(cached.data, targetCurrency),
+    ]);
+    return NextResponse.json(finalReceipt, {
       status: 200,
       headers: {
         "X-Receipt-Cache": cached.layer,
@@ -188,8 +230,12 @@ export async function POST(request: Request) {
   try {
     const extracted = await extractReceiptWithGemini(buffer, file.type, apiKey);
     await setPersistentCachedReceipt(supabase, imageHash, extracted);
+    const finalReceipt = await maybeConvertToTargetCurrency(
+      extracted,
+      targetCurrency
+    );
 
-    return NextResponse.json(extracted, {
+    return NextResponse.json(finalReceipt, {
       status: 200,
       headers: {
         "X-Receipt-Cache": "MISS",

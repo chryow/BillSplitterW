@@ -1,5 +1,6 @@
 import { GoogleGenAI, ThinkingLevel, Type, type Schema } from "@google/genai";
 import { GEMINI_MODEL } from "../config";
+import { inferReceiptCurrency } from "../fx";
 import type { ScannedReceiptItem, ScannedReceiptResponse } from "../types";
 
 const RECEIPT_RESPONSE_SCHEMA: Schema = {
@@ -79,11 +80,12 @@ Rules:
    - Indonesian receipts (Rp / IDR) commonly use dots or commas as thousand separators and NO decimals (e.g. "Rp 45.000", "45.000", or "45,000" -> 45000, NOT 45).
    - International receipts (USD, SGD, MYR, EUR) may include 2 decimals (e.g. "$12.50" -> 12.5, "1,250.50" -> 1250.5).
    - Japanese Yen (JPY) has no decimals (e.g. "¥1,200" -> 1200).
-2. Currency detection (IMPORTANT — do NOT guess USD):
-   - Return "IDR" whenever you see Rp, IDR, PB1, PPN, Total Bayar, Tunai, Kembalian, Diskon, Indonesian street/city names (e.g. Jl., Jakarta, Bali, Bandung), or prices formatted in thousands ending in ".000" / ",000".
-   - ONLY return "USD" if "$", "US$", "USD", or clear US store/sales-tax indicators are explicitly printed on the receipt.
-   - Return "SGD" for S$/SGD/Singapore GST, "MYR" for RM/MYR/SST, "EUR" for €/EUR, "JPY" for ¥/JPY/円.
-   - If NO currency symbol or regional indicator is visible on the receipt, return null (NEVER default to "USD").
+2. Currency detection (CRITICAL — always detect accurately, NEVER guess USD/SGD for IDR):
+   - Return "IDR" whenever you see Rp, IDR, PB1, PPN, Total Bayar, Tunai, Kembalian, Diskon, Indonesian dish/city names (e.g. Nasi, Ayam, Es Teh, Jl., Jakarta, Bali, Bandung), OR restaurant/retail prices in thousands like 15.000 - 500.000.
+   - Return "SGD" ONLY for explicit S$, SGD, or Singapore GST/addresses.
+   - Return "USD" ONLY for explicit $, US$, USD, or clear US store/sales-tax indicators.
+   - Return "MYR" for RM/MYR/SST, "EUR" for €/EUR, "JPY" for ¥/JPY/円.
+   - If NO currency symbol or regional indicator is visible on the receipt, return null.
 3. Line items:
    - Extract only purchased items. Exclude subtotal, tax, service charge, discounts, rounding lines, cash/change, and payment methods.
    - If an item shows quantity (e.g. "2x Iced Latte 76.000"), set qty: 2, total_price: 76000, unit_price: 38000.
@@ -152,7 +154,7 @@ function sanitizeReceiptResponse(raw: unknown): ScannedReceiptResponse {
         .map((w) => w.trim())
     : [];
 
-  return {
+  const sanitized: ScannedReceiptResponse = {
     merchant_name:
       typeof obj.merchant_name === "string" && obj.merchant_name.trim()
         ? obj.merchant_name.trim()
@@ -169,6 +171,13 @@ function sanitizeReceiptResponse(raw: unknown): ScannedReceiptResponse {
     grand_total: toNullableNumber(obj.grand_total),
     warnings,
   };
+
+  const inferred = inferReceiptCurrency(sanitized);
+  if (inferred) {
+    sanitized.currency = inferred;
+  }
+
+  return sanitized;
 }
 
 export async function extractReceiptWithGemini(
