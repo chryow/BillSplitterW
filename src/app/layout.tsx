@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PwaRegistrar } from "@/components/PwaRegistrar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -72,6 +73,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
       </head>
       <body className="min-h-full bg-[var(--bg-app)] text-[var(--text-primary)] selection:bg-[var(--accent-soft)] selection:text-[var(--accent-text)]">
+        <PwaRegistrar />
         {children}
       </body>
     </html>

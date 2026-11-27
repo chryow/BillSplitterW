@@ -409,3 +409,83 @@ export function checkReceiptMath(
     isMatch: diffMinor === 0,
   };
 }
+
+export interface RoundingOption {
+  step: number;
+  label: string;
+}
+
+/**
+ * Returns currency-appropriate friendly round-up increments (0 = Exact).
+ */
+export function getRoundingOptions(currency: CurrencyCode): RoundingOption[] {
+  if (currency === "IDR") {
+    return [
+      { step: 0, label: "Exact" },
+      { step: 500, label: "Rp 500" },
+      { step: 1000, label: "Rp 1.000" },
+    ];
+  }
+  if (currency === "JPY") {
+    return [
+      { step: 0, label: "Exact" },
+      { step: 10, label: "¥10" },
+      { step: 100, label: "¥100" },
+    ];
+  }
+  return [
+    { step: 0, label: "Exact" },
+    { step: 0.5, label: "0.50" },
+    { step: 1, label: "1.00" },
+  ];
+}
+
+/**
+ * Optionally rounds each participant's positive total UP to the nearest `step`
+ * (e.g. Rp 500 or Rp 1.000) so groups get clean transfer numbers without ever
+ * under-collecting the restaurant bill.
+ */
+export function applyFriendlyRounding(
+  split: SplitCalculationResult,
+  step: number
+): {
+  split: SplitCalculationResult;
+  roundingSurplus: number;
+} {
+  if (!Number.isFinite(step) || step <= 0) {
+    return { split, roundingSurplus: 0 };
+  }
+
+  const cur = split.currency;
+  const stepMinor = toMinorUnits(step, cur);
+  if (stepMinor <= 1) {
+    return { split, roundingSurplus: 0 };
+  }
+
+  let newSumMinor = 0;
+  const baseSumMinor = toMinorUnits(split.sumOfPeopleTotals, cur);
+
+  const roundedPeople = split.people.map((person) => {
+    const exactMinor = toMinorUnits(person.total, cur);
+    if (exactMinor <= 0) {
+      return person;
+    }
+    const roundedMinor = Math.ceil(exactMinor / stepMinor) * stepMinor;
+    newSumMinor += roundedMinor;
+    return {
+      ...person,
+      total: fromMinorUnits(roundedMinor, cur),
+    };
+  });
+
+  const surplusMinor = Math.max(0, newSumMinor - baseSumMinor);
+
+  return {
+    split: {
+      ...split,
+      people: roundedPeople,
+      sumOfPeopleTotals: fromMinorUnits(newSumMinor, cur),
+    },
+    roundingSurplus: fromMinorUnits(surplusMinor, cur),
+  };
+}

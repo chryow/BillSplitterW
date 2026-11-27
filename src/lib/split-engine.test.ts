@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   allocateLargestRemainder,
+  applyFriendlyRounding,
   calculateSplit,
   checkReceiptMath,
   computeSettlementSummary,
+  getRoundingOptions,
   splitItemQuantity,
 } from "./split-engine";
 import type { BillItem, Participant } from "./types";
@@ -484,5 +486,64 @@ describe("split-engine", () => {
     expect(summary.collectibleCount).toBe(2);
     expect(summary.settledCount).toBe(1);
     expect(summary.unsettledCount).toBe(1);
+  });
+
+  it("rounds individual totals up cleanly to Rp 500 or Rp 1.000 without under-collecting", () => {
+    const split = calculateSplit({
+      currency: "IDR",
+      items: [
+        {
+          id: "i1",
+          name: "Shared Dish",
+          qty: 1,
+          unitPrice: 100000,
+          totalPrice: 100000,
+          assigneeIds: ["p1", "p2", "p3"],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(getRoundingOptions("IDR").map((o) => o.step)).toEqual([0, 500, 1000]);
+
+    const rounded500 = applyFriendlyRounding(split, 500);
+    expect(rounded500.split.people.every((p) => p.total === 33500)).toBe(true);
+    expect(rounded500.split.sumOfPeopleTotals).toBe(100500);
+    expect(rounded500.roundingSurplus).toBe(500);
+
+    const rounded1000 = applyFriendlyRounding(split, 1000);
+    expect(rounded1000.split.people.every((p) => p.total === 34000)).toBe(true);
+    expect(rounded1000.split.sumOfPeopleTotals).toBe(102000);
+    expect(rounded1000.roundingSurplus).toBe(2000);
+  });
+
+  it("rounds 2-decimal USD shares up cleanly to $0.50 or $1.00", () => {
+    const split = calculateSplit({
+      currency: "USD",
+      items: [
+        {
+          id: "i1",
+          name: "Shared Nachos",
+          qty: 1,
+          unitPrice: 10,
+          totalPrice: 10,
+          assigneeIds: ["p1", "p2", "p3"],
+        },
+      ],
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    const roundedHalf = applyFriendlyRounding(split, 0.5);
+    expect(roundedHalf.split.people.every((p) => p.total === 3.5)).toBe(true);
+    expect(roundedHalf.split.sumOfPeopleTotals).toBe(10.5);
+    expect(roundedHalf.roundingSurplus).toBe(0.5);
   });
 });

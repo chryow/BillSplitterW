@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -11,20 +11,29 @@ import {
   CloudCheck,
   Copy,
   Globe,
+  ImageDown,
   Link2,
   Loader2,
   MessageCircle,
   RotateCcw,
   Save,
+  Send,
   UserCheck,
   Wallet,
 } from "lucide-react";
 import { StatusBanner } from "@/components/ui/StatusBanner";
 import { formatCurrency } from "@/lib/currency";
-import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
-import type { BillState, PaymentInfo } from "@/lib/types";
+import { shareOrDownloadSplitImage } from "@/lib/split-card-image";
+import {
+  applyFriendlyRounding,
+  calculateSplit,
+  computeSettlementSummary,
+  getRoundingOptions,
+} from "@/lib/split-engine";
+import type { BillState, PaymentInfo, PersonSplit } from "@/lib/types";
 import {
   buildWhatsAppShareUrl,
+  formatPersonNudge,
   formatWhatsAppSummary,
   hasPaymentInfo,
 } from "@/lib/whatsapp-formatter";
@@ -59,26 +68,58 @@ export function SummaryStep({
   onNewSplit,
 }: SummaryStepProps) {
   const [paymentOpen, setPaymentOpen] = useState(hasPaymentInfo(paymentInfo));
+  const [roundingStep, setRoundingStep] = useState<number>(0);
   const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPersonId, setCopiedPersonId] = useState<string | null>(null);
+  const [exportingImage, setExportingImage] = useState(false);
 
   const cur = bill.currency;
-  const split = calculateSplit({
-    currency: bill.currency,
-    items: bill.items,
-    tax: bill.tax,
-    serviceCharge: bill.serviceCharge,
-    discount: bill.discount,
-    participants: bill.participants,
-    feeSplitMode: "proportional",
-  });
+  const roundingOptions = useMemo(() => getRoundingOptions(cur), [cur]);
+  const activeRoundingStep = roundingOptions.some((o) => o.step === roundingStep)
+    ? roundingStep
+    : 0;
 
-  const settlement = computeSettlementSummary(
-    split,
-    bill.paidByParticipantId,
-    bill.settledParticipantIds
+  const baseSplit = useMemo(
+    () =>
+      calculateSplit({
+        currency: bill.currency,
+        items: bill.items,
+        tax: bill.tax,
+        serviceCharge: bill.serviceCharge,
+        discount: bill.discount,
+        participants: bill.participants,
+        feeSplitMode: "proportional",
+      }),
+    [
+      bill.currency,
+      bill.items,
+      bill.tax,
+      bill.serviceCharge,
+      bill.discount,
+      bill.participants,
+    ]
   );
-  const settledSet = new Set(bill.settledParticipantIds);
+
+  const { split, roundingSurplus } = useMemo(
+    () => applyFriendlyRounding(baseSplit, activeRoundingStep),
+    [baseSplit, activeRoundingStep]
+  );
+
+  const settlement = useMemo(
+    () =>
+      computeSettlementSummary(
+        split,
+        bill.paidByParticipantId,
+        bill.settledParticipantIds
+      ),
+    [split, bill.paidByParticipantId, bill.settledParticipantIds]
+  );
+
+  const settledSet = useMemo(
+    () => new Set(bill.settledParticipantIds),
+    [bill.settledParticipantIds]
+  );
 
   const shareUrl =
     bill.shareSlug && bill.isPublic && typeof window !== "undefined"
@@ -94,6 +135,8 @@ export function SummaryStep({
       shareUrl,
       paidByParticipantId: bill.paidByParticipantId,
       settledParticipantIds: bill.settledParticipantIds,
+      roundingStep: activeRoundingStep,
+      roundingSurplus,
     });
 
   const handleCopyWhatsApp = async () => {
@@ -107,6 +150,52 @@ export function SummaryStep({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const handleSaveCardImage = async () => {
+    setExportingImage(true);
+    try {
+      await shareOrDownloadSplitImage({
+        merchantName: bill.merchantName,
+        split,
+        paidByParticipantId: bill.paidByParticipantId,
+        settledParticipantIds: bill.settledParticipantIds,
+        paymentInfo,
+        roundingStep: activeRoundingStep,
+        dateLabel: new Date().toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        }),
+      });
+    } finally {
+      setExportingImage(false);
+    }
+  };
+
+  const handleCopyPersonNudge = async (person: PersonSplit) => {
+    const text = formatPersonNudge({
+      merchantName: bill.merchantName,
+      person,
+      currency: cur,
+      payerName: settlement.payerName,
+      paymentInfo,
+      shareUrl,
+    });
+    await navigator.clipboard.writeText(text);
+    setCopiedPersonId(person.participantId);
+    setTimeout(() => setCopiedPersonId(null), 1800);
+  };
+
+  const handleWhatsAppPersonNudge = (person: PersonSplit) => {
+    const text = formatPersonNudge({
+      merchantName: bill.merchantName,
+      person,
+      currency: cur,
+      payerName: settlement.payerName,
+      paymentInfo,
+      shareUrl,
+    });
+    window.open(buildWhatsAppShareUrl(text), "_blank", "noopener,noreferrer");
+  };
+
   const handleCopyShareLink = async () => {
     if (!shareUrl) return;
     await navigator.clipboard.writeText(shareUrl);
@@ -116,7 +205,7 @@ export function SummaryStep({
 
   return (
     <section className="space-y-4 pt-3 pb-28">
-      {/* Bill Grand Total + Settlement Progress Overview */}
+      {/* Bill Grand Total + Settlement Progress + Round-Up Selector */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -166,6 +255,48 @@ export function SummaryStep({
               </strong>
             </span>
           )}
+        </div>
+
+        {/* Friendly Round-Up Pills + Save PNG Card */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-[var(--text-muted)]">
+              Round up:
+            </span>
+            <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] p-0.5">
+              {roundingOptions.map((opt) => {
+                const active = activeRoundingStep === opt.step;
+                return (
+                  <button
+                    key={opt.step}
+                    type="button"
+                    onClick={() => setRoundingStep(opt.step)}
+                    className={`rounded-md px-2 py-0.5 font-mono text-[10px] font-semibold transition-colors ${
+                      active
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={exportingImage}
+            onClick={handleSaveCardImage}
+            className="inline-flex h-7 items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+          >
+            {exportingImage ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <ImageDown className="h-3 w-3 text-[var(--accent-text)]" />
+            )}
+            Save Card
+          </button>
         </div>
 
         {/* Who Paid + Settlement Progress Strip */}
@@ -237,7 +368,7 @@ export function SummaryStep({
         />
       )}
 
-      {/* Per-Person Breakdown Cards with Paid/Unpaid Checklist */}
+      {/* Per-Person Breakdown Cards with Paid/Unpaid + Individual Nudge */}
       <div className="space-y-2.5">
         {split.people.map((person) => {
           const isPayer = bill.paidByParticipantId === person.participantId;
@@ -253,7 +384,7 @@ export function SummaryStep({
                   : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
               }`}
             >
-              <div className="flex items-center justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
                     className="h-3 w-3 shrink-0 rounded-full"
@@ -269,7 +400,7 @@ export function SummaryStep({
                   )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
                   <span
                     className={`font-mono text-base font-bold tabular-nums ${
                       isSettled
@@ -346,22 +477,57 @@ export function SummaryStep({
 
               {(person.taxShare > 0 ||
                 person.serviceShare > 0 ||
-                person.discountShare > 0) && (
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
-                  {person.taxShare > 0 && (
-                    <span className="font-mono tabular-nums">
-                      Tax +{formatCurrency(person.taxShare, cur)}
-                    </span>
-                  )}
-                  {person.serviceShare > 0 && (
-                    <span className="font-mono tabular-nums">
-                      Svc +{formatCurrency(person.serviceShare, cur)}
-                    </span>
-                  )}
-                  {person.discountShare > 0 && (
-                    <span className="font-mono tabular-nums text-[var(--accent-text)]">
-                      Disc -{formatCurrency(person.discountShare, cur)}
-                    </span>
+                person.discountShare > 0 ||
+                (showSettleButton && !isSettled)) && (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {person.taxShare > 0 && (
+                      <span className="font-mono tabular-nums">
+                        Tax +{formatCurrency(person.taxShare, cur)}
+                      </span>
+                    )}
+                    {person.serviceShare > 0 && (
+                      <span className="font-mono tabular-nums">
+                        Svc +{formatCurrency(person.serviceShare, cur)}
+                      </span>
+                    )}
+                    {person.discountShare > 0 && (
+                      <span className="font-mono tabular-nums text-[var(--accent-text)]">
+                        Disc -{formatCurrency(person.discountShare, cur)}
+                      </span>
+                    )}
+                  </div>
+
+                  {showSettleButton && !isSettled && (
+                    <div className="ml-auto flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyPersonNudge(person)}
+                        title={`Copy ${person.name}'s individual share`}
+                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--bg-surface-2)] px-2 text-[10px] font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      >
+                        {copiedPersonId === person.participantId ? (
+                          <>
+                            <Check className="h-3 w-3 text-[var(--accent-text)]" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleWhatsAppPersonNudge(person)}
+                        title={`Send ${person.name} a WhatsApp reminder`}
+                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-[var(--accent-soft)] px-2 text-[10px] font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90"
+                      >
+                        <Send className="h-3 w-3" />
+                        Nudge
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -369,14 +535,21 @@ export function SummaryStep({
           );
         })}
 
-        {/* Exact Sum Reconciliation Strip */}
+        {/* Exact Sum / Rounding Buffer Reconciliation Strip */}
         <div className="flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
-          <span>Sum of individual totals</span>
+          <span>
+            {activeRoundingStep > 0 && roundingSurplus > 0
+              ? "Rounded total collected"
+              : "Sum of individual totals"}
+          </span>
           <span className="font-mono font-semibold text-[var(--text-secondary)] tabular-nums">
             {formatCurrency(split.sumOfPeopleTotals, cur)}
-            {split.unassignedItemIds.length === 0 &&
-              split.sumOfPeopleTotals === split.grandTotal &&
-              " · Exact match ✓"}
+            {activeRoundingStep > 0 && roundingSurplus > 0
+              ? ` (+${formatCurrency(roundingSurplus, cur)} buffer)`
+              : split.unassignedItemIds.length === 0 &&
+                  split.sumOfPeopleTotals === split.grandTotal
+                ? " · Exact match ✓"
+                : ""}
           </span>
         </div>
       </div>
@@ -618,7 +791,7 @@ export function SummaryStep({
             className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3.5 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90 active:scale-[0.99]"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden xs:inline sm:inline">WhatsApp</span>
+            <span className="hidden sm:inline">WhatsApp</span>
           </button>
 
           <button

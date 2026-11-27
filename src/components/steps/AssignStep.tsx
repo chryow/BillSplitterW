@@ -203,9 +203,38 @@ export function AssignStep({
     }));
   };
 
+  const splitEverythingEqually = () => {
+    const allIds = bill.participants.map((p) => p.id);
+    if (allIds.length === 0) return;
+    onUpdateBill((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => ({
+        ...item,
+        assigneeIds: [...allIds],
+        assigneeShares: undefined,
+      })),
+    }));
+  };
+
+  const assignRemainingTo = (participantId: string) => {
+    onUpdateBill((prev) => ({
+      ...prev,
+      items: prev.items.map((item) =>
+        item.assigneeIds.length === 0
+          ? {
+              ...item,
+              assigneeIds: [participantId],
+              assigneeShares: undefined,
+            }
+          : item
+      ),
+    }));
+  };
+
   const participantById = new Map(bill.participants.map((p) => [p.id, p]));
   const assignedCount = bill.items.filter((i) => i.assigneeIds.length > 0).length;
   const totalItems = bill.items.length;
+  const unassignedCount = totalItems - assignedCount;
 
   const quickSuggestions = DEFAULT_QUICK_NAMES.filter(
     (name) =>
@@ -382,18 +411,46 @@ export function AssignStep({
         )}
       </div>
 
-      {/* Tap-to-Assign Items */}
+      {/* Tap-to-Assign Items + Bulk Quick Shortcuts */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-0.5">
+        <div className="flex items-center justify-between gap-2 px-0.5">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Assign Items ({assignedCount}/{totalItems})
           </h2>
-          {assignedCount < totalItems && (
-            <span className="text-[11px] font-medium text-[var(--warning-text)]">
-              {totalItems - assignedCount} unassigned
-            </span>
+          {bill.participants.length > 1 && totalItems > 0 && (
+            <button
+              type="button"
+              onClick={splitEverythingEqually}
+              className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/40 hover:text-[var(--accent-text)]"
+            >
+              <Users className="h-3 w-3" />
+              Split all equally
+            </button>
           )}
         </div>
+
+        {/* Assign Remaining Unassigned Items Shortcut */}
+        {unassignedCount > 0 && bill.participants.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto rounded-xl border border-[var(--warning-border)] bg-[var(--warning-bg)] px-3 py-2 no-scrollbar">
+            <span className="shrink-0 text-[11px] font-semibold text-[var(--warning-text)]">
+              Assign {unassignedCount} left to:
+            </span>
+            {bill.participants.map((person) => (
+              <button
+                key={person.id}
+                type="button"
+                onClick={() => assignRemainingTo(person.id)}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: person.color }}
+                />
+                {person.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-2">
           {bill.items.map((item: BillItem) => {

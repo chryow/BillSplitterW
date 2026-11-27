@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Check,
   CheckCircle2,
   Copy,
+  ImageDown,
+  Loader2,
   MessageCircle,
   ReceiptText,
   Wallet,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
+import { shareOrDownloadSplitImage } from "@/lib/split-card-image";
 import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
 import type {
   BillItem,
@@ -44,24 +47,43 @@ export interface SharedBillData {
 export function SharedBillView({ bill }: { bill: SharedBillData }) {
   const [copiedSummary, setCopiedSummary] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState(false);
+  const [exportingImage, setExportingImage] = useState(false);
 
   const cur = bill.currency;
-  const split = calculateSplit({
-    currency: cur,
-    items: bill.items,
-    tax: bill.tax,
-    serviceCharge: bill.service_charge,
-    discount: bill.discount,
-    participants: bill.participants,
-    feeSplitMode: "proportional",
-  });
-
-  const settlement = computeSettlementSummary(
-    split,
-    bill.paid_by_participant_id,
-    bill.settled_participant_ids
+  const split = useMemo(
+    () =>
+      calculateSplit({
+        currency: cur,
+        items: bill.items,
+        tax: bill.tax,
+        serviceCharge: bill.service_charge,
+        discount: bill.discount,
+        participants: bill.participants,
+        feeSplitMode: "proportional",
+      }),
+    [
+      cur,
+      bill.items,
+      bill.tax,
+      bill.service_charge,
+      bill.discount,
+      bill.participants,
+    ]
   );
-  const settledSet = new Set(bill.settled_participant_ids);
+
+  const settlement = useMemo(
+    () =>
+      computeSettlementSummary(
+        split,
+        bill.paid_by_participant_id,
+        bill.settled_participant_ids
+      ),
+    [split, bill.paid_by_participant_id, bill.settled_participant_ids]
+  );
+  const settledSet = useMemo(
+    () => new Set(bill.settled_participant_ids),
+    [bill.settled_participant_ids]
+  );
 
   const buildSummaryText = () =>
     formatWhatsAppSummary({
@@ -98,6 +120,22 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
     month: "short",
     day: "numeric",
   });
+
+  const handleSaveCardImage = async () => {
+    setExportingImage(true);
+    try {
+      await shareOrDownloadSplitImage({
+        merchantName: bill.merchant_name,
+        split,
+        paidByParticipantId: bill.paid_by_participant_id,
+        settledParticipantIds: bill.settled_participant_ids,
+        paymentInfo: bill.payment_info,
+        dateLabel: formattedDate,
+      });
+    } finally {
+      setExportingImage(false);
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] bg-[var(--bg-app)] text-[var(--text-primary)]">
@@ -363,6 +401,21 @@ export function SharedBillView({ bill }: { bill: SharedBillData }) {
                 <Copy className="h-4 w-4" />
                 <span>Copy Summary</span>
               </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            disabled={exportingImage}
+            onClick={handleSaveCardImage}
+            title="Save or share PNG summary card"
+            aria-label="Save PNG card"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)] disabled:opacity-50"
+          >
+            {exportingImage ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImageDown className="h-4 w-4" />
             )}
           </button>
 
