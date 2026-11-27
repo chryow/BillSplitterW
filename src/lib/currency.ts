@@ -83,7 +83,20 @@ export const CURRENCY_LIST: CurrencyConfig[] = [
   CURRENCIES.JPY,
 ];
 
-export function isSupportedCurrency(code: string | null | undefined): code is CurrencyCode {
+const MAX_SAFE_AMOUNT = 999_999_999;
+
+export function getCurrencyConfig(
+  currency: string | null | undefined
+): CurrencyConfig {
+  if (currency && currency in CURRENCIES) {
+    return CURRENCIES[currency as CurrencyCode];
+  }
+  return CURRENCIES.IDR;
+}
+
+export function isSupportedCurrency(
+  code: string | null | undefined
+): code is CurrencyCode {
   if (!code) return false;
   return code.toUpperCase() in CURRENCIES;
 }
@@ -95,14 +108,29 @@ export function normalizeCurrencyCode(
   if (!code) return fallback;
   const upper = code.trim().toUpperCase();
   if (upper === "RP" || upper === "RUPIAH") return "IDR";
+  if (upper === "$" || upper === "US$" || upper === "USD$") return "USD";
+  if (upper === "S$" || upper === "SG$") return "SGD";
   if (upper === "RM") return "MYR";
-  if (upper === "YEN") return "JPY";
+  if (upper === "€") return "EUR";
+  if (upper === "¥" || upper === "YEN") return "JPY";
   if (upper in CURRENCIES) return upper as CurrencyCode;
   return fallback;
 }
 
 export function getCurrencyFactor(currency: CurrencyCode): number {
-  return CURRENCIES[currency].decimals === 0 ? 1 : 100;
+  return getCurrencyConfig(currency).decimals === 0 ? 1 : 100;
+}
+
+export function roundForCurrency(
+  amount: number,
+  currency: CurrencyCode
+): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const clamped = Math.min(amount, MAX_SAFE_AMOUNT);
+  const config = getCurrencyConfig(currency);
+  return config.decimals === 0
+    ? Math.round(clamped)
+    : Number(clamped.toFixed(2));
 }
 
 export function toMinorUnits(amount: number, currency: CurrencyCode): number {
@@ -117,7 +145,7 @@ export function fromMinorUnits(minor: number, currency: CurrencyCode): number {
 }
 
 export function formatCurrency(amount: number, currency: CurrencyCode): string {
-  const config = CURRENCIES[currency];
+  const config = getCurrencyConfig(currency);
   const safe = Number.isFinite(amount) ? amount : 0;
   const isNegative = safe < 0;
   const absVal = Math.abs(safe);
@@ -143,10 +171,13 @@ export function formatCurrency(amount: number, currency: CurrencyCode): string {
 /**
  * Formats an editable numeric value cleanly for text inputs without currency symbol.
  */
-export function formatEditableAmount(amount: number, currency: CurrencyCode): string {
-  const config = CURRENCIES[currency];
+export function formatEditableAmount(
+  amount: number,
+  currency: CurrencyCode
+): string {
+  const config = getCurrencyConfig(currency);
   const safe = Number.isFinite(amount) ? amount : 0;
-  if (safe === 0) return "";
+  if (safe <= 0) return "";
   if (config.decimals === 0) {
     return Math.round(safe).toString();
   }
@@ -154,23 +185,57 @@ export function formatEditableAmount(amount: number, currency: CurrencyCode): st
 }
 
 /**
- * Parses user-typed currency strings tolerating IDR dot thousand separators (e.g. "45.000")
- * and standard decimal inputs (e.g. "12.50" or "1,250.50").
+ * Parses user-typed currency strings tolerating:
+ * - Zero-decimal currencies (IDR, JPY): strips dot/comma thousand separators ("45.000" -> 45000).
+ * - Two-decimal currencies (USD, SGD, MYR, EUR):
+ *   - Standard dot decimals ("12.50" -> 12.5, "0.99" -> 0.99, "1,250.50" -> 1250.5)
+ *   - Comma decimals ("12,50" -> 12.5, "1.250,50" -> 1250.5)
+ *   - Thousand-grouped integers ("1,250" -> 1250)
  */
 export function parseAmountInput(raw: string, currency: CurrencyCode): number {
-  const cleaned = raw.trim().replace(/[^\d.,-]/g, "");
+  const cleaned = raw.trim().replace(/[^\d.,]/g, "");
   if (!cleaned) return 0;
 
-  const config = CURRENCIES[currency];
+  const config = getCurrencyConfig(currency);
   if (config.decimals === 0) {
-    // Strip all thousand separators (dots or commas) for zero-decimal currencies
     const digitsOnly = cleaned.replace(/[.,]/g, "");
     const parsed = Number.parseInt(digitsOnly, 10);
-    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    return Number.isFinite(parsed)
+      ? Math.min(Math.max(0, parsed), MAX_SAFE_AMOUNT)
+      : 0;
   }
 
-  // For 2-decimal currencies, remove thousand commas and keep last dot as decimal
-  const normalized = cleaned.replace(/,/g, "");
+  const lastDot = cleaned.lastIndexOf(".");
+  const lastComma = cleaned.lastIndexOf(",");
+  let normalized: string;
+
+  if (lastDot !== -1 && lastComma !== -1) {
+    // Both separators present: whichever appears last is the decimal separator
+    if (lastComma > lastDot) {
+      // e.g. "1.250,50"
+      normalized = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      // e.g. "1,250.50"
+      normalized = cleaned.replace(/,/g, "");
+    }
+  } else if (lastComma !== -1) {
+    // Only comma(s) present: single comma with 1-2 trailing digits is decimal ("12,50")
+    const commaCount = (cleaned.match(/,/g) ?? []).length;
+    const digitsAfterComma = cleaned.length - lastComma - 1;
+    if (commaCount === 1 && digitsAfterComma > 0 && digitsAfterComma <= 2) {
+      normalized = cleaned.replace(",", ".");
+    } else {
+      normalized = cleaned.replace(/,/g, "");
+    }
+  } else if (lastDot !== -1) {
+    // Only dot(s) present: multiple dots are thousand separators ("1.250.000")
+    const dotCount = (cleaned.match(/\./g) ?? []).length;
+    normalized = dotCount > 1 ? cleaned.replace(/\./g, "") : cleaned;
+  } else {
+    normalized = cleaned;
+  }
+
   const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) ? Math.max(0, Number(parsed.toFixed(2))) : 0;
+  if (!Number.isFinite(parsed)) return 0;
+  return roundForCurrency(Math.max(0, parsed), currency);
 }

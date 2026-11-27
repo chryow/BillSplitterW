@@ -62,7 +62,7 @@ export function SummaryStep({
     serviceCharge: bill.serviceCharge,
     discount: bill.discount,
     participants: bill.participants,
-    feeSplitMode: bill.feeSplitMode,
+    feeSplitMode: "proportional",
   });
 
   const shareUrl =
@@ -73,7 +73,7 @@ export function SummaryStep({
   const handleCopyWhatsApp = async () => {
     const text = formatWhatsAppSummary({
       merchantName: bill.merchantName,
-      feeSplitMode: bill.feeSplitMode,
+      feeSplitMode: "proportional",
       split,
       paymentInfo,
       shareUrl,
@@ -142,9 +142,6 @@ export function SummaryStep({
               </strong>
             </span>
           )}
-          <span className="ml-auto capitalize text-[var(--text-muted)]">
-            {bill.feeSplitMode} fees
-          </span>
         </div>
       </div>
 

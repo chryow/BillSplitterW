@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,11 +8,12 @@ import {
   Scissors,
   Trash2,
 } from "lucide-react";
+import { AmountInput } from "@/components/ui/AmountInput";
 import { StatusBanner } from "@/components/ui/StatusBanner";
 import {
-  CURRENCIES,
   formatCurrency,
-  parseAmountInput,
+  getCurrencyConfig,
+  roundForCurrency,
 } from "@/lib/currency";
 import { checkReceiptMath, splitItemQuantity } from "@/lib/split-engine";
 import type { BillItem, BillState } from "@/lib/types";
@@ -36,7 +38,9 @@ export function ReviewStep({
   onNext,
 }: ReviewStepProps) {
   const cur = bill.currency;
-  const currencyInfo = CURRENCIES[cur];
+  const currencyInfo = getCurrencyConfig(cur);
+  const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({});
+
   const mathCheck = checkReceiptMath(
     bill.items,
     bill.tax,
@@ -55,18 +59,15 @@ export function ReviewStep({
     }));
   };
 
-  const handleQtyChange = (item: BillItem, rawQty: string) => {
-    const parsed = Number.parseInt(rawQty.replace(/[^\d]/g, ""), 10);
-    const qty = Number.isFinite(parsed) && parsed >= 1 ? Math.min(parsed, 99) : 1;
+  const applyQty = (item: BillItem, nextQty: number) => {
+    const qty = Math.min(99, Math.max(1, nextQty));
     const nextUnit =
       item.unitPrice > 0
         ? item.unitPrice
-        : qty > 0
-          ? Number((item.totalPrice / qty).toFixed(currencyInfo.decimals))
-          : 0;
+        : roundForCurrency(item.totalPrice / qty, cur);
     const nextTotal =
       item.unitPrice > 0
-        ? Number((nextUnit * qty).toFixed(currencyInfo.decimals))
+        ? roundForCurrency(nextUnit * qty, cur)
         : item.totalPrice;
 
     updateItem(item.id, {
@@ -76,11 +77,34 @@ export function ReviewStep({
     });
   };
 
-  const handlePriceChange = (item: BillItem, rawPrice: string) => {
-    const totalPrice = parseAmountInput(rawPrice, cur);
+  const handleQtyChange = (item: BillItem, rawQty: string) => {
+    const digitsOnly = rawQty.replace(/[^\d]/g, "").slice(0, 2);
+    setQtyDrafts((prev) => ({ ...prev, [item.id]: digitsOnly }));
+    if (digitsOnly !== "") {
+      const parsed = Number.parseInt(digitsOnly, 10);
+      if (Number.isFinite(parsed) && parsed >= 1) {
+        applyQty(item, parsed);
+      }
+    }
+  };
+
+  const handleQtyBlur = (item: BillItem) => {
+    const draft = qtyDrafts[item.id];
+    setQtyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    if (draft !== undefined) {
+      const parsed = Number.parseInt(draft, 10);
+      applyQty(item, Number.isFinite(parsed) && parsed >= 1 ? parsed : 1);
+    }
+  };
+
+  const handlePriceChange = (item: BillItem, totalPrice: number) => {
     const unitPrice =
       item.qty > 0
-        ? Number((totalPrice / item.qty).toFixed(currencyInfo.decimals))
+        ? roundForCurrency(totalPrice / item.qty, cur)
         : totalPrice;
     updateItem(item.id, { totalPrice, unitPrice });
   };
@@ -239,19 +263,18 @@ export function ReviewStep({
               </div>
 
               <div className="mt-2 flex items-center gap-2">
-                <label className="flex items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5 h-10">
+                <label className="flex h-10 items-center gap-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-2)] px-2.5">
                   <span className="text-[11px] font-medium text-[var(--text-muted)]">
                     Qty
                   </span>
                   <input
-                    type="number"
-                    min={1}
-                    max={99}
+                    type="text"
                     inputMode="numeric"
-                    value={item.qty}
+                    value={qtyDrafts[item.id] ?? String(item.qty)}
                     onChange={(e) => handleQtyChange(item, e.target.value)}
+                    onBlur={() => handleQtyBlur(item)}
                     aria-label="Quantity"
-                    className="w-10 bg-transparent text-center font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
+                    className="w-8 bg-transparent text-center font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
                   />
                 </label>
 
@@ -259,13 +282,11 @@ export function ReviewStep({
                   <span className="font-mono text-xs text-[var(--text-muted)]">
                     {currencyInfo.symbol}
                   </span>
-                  <input
-                    type="text"
-                    inputMode={currencyInfo.decimals === 0 ? "numeric" : "decimal"}
-                    value={item.totalPrice === 0 ? "" : String(item.totalPrice)}
-                    onChange={(e) => handlePriceChange(item, e.target.value)}
-                    placeholder="0"
-                    aria-label="Line total price"
+                  <AmountInput
+                    value={item.totalPrice}
+                    currency={cur}
+                    onChange={(nextVal) => handlePriceChange(item, nextVal)}
+                    ariaLabel="Line total price"
                     className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums placeholder:text-[var(--text-muted)] focus:outline-none"
                   />
                 </label>
@@ -299,7 +320,7 @@ export function ReviewStep({
       </div>
 
       {/* Tax, Service Charge & Discount */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
           Fees &amp; Discounts
         </h2>
@@ -313,17 +334,13 @@ export function ReviewStep({
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
               </span>
-              <input
-                type="text"
-                inputMode={currencyInfo.decimals === 0 ? "numeric" : "decimal"}
-                value={bill.tax === 0 ? "" : String(bill.tax)}
-                onChange={(e) =>
-                  onUpdateBill((prev) => ({
-                    ...prev,
-                    tax: parseAmountInput(e.target.value, cur),
-                  }))
+              <AmountInput
+                value={bill.tax}
+                currency={cur}
+                onChange={(nextTax) =>
+                  onUpdateBill((prev) => ({ ...prev, tax: nextTax }))
                 }
-                placeholder="0"
+                ariaLabel="Tax amount"
                 className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
               />
             </div>
@@ -337,17 +354,16 @@ export function ReviewStep({
               <span className="font-mono text-xs text-[var(--text-muted)]">
                 {currencyInfo.symbol}
               </span>
-              <input
-                type="text"
-                inputMode={currencyInfo.decimals === 0 ? "numeric" : "decimal"}
-                value={bill.serviceCharge === 0 ? "" : String(bill.serviceCharge)}
-                onChange={(e) =>
+              <AmountInput
+                value={bill.serviceCharge}
+                currency={cur}
+                onChange={(nextService) =>
                   onUpdateBill((prev) => ({
                     ...prev,
-                    serviceCharge: parseAmountInput(e.target.value, cur),
+                    serviceCharge: nextService,
                   }))
                 }
-                placeholder="0"
+                ariaLabel="Service charge amount"
                 className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums focus:outline-none"
               />
             </div>
@@ -361,17 +377,13 @@ export function ReviewStep({
               <span className="font-mono text-xs text-[var(--accent-text)]">
                 -{currencyInfo.symbol}
               </span>
-              <input
-                type="text"
-                inputMode={currencyInfo.decimals === 0 ? "numeric" : "decimal"}
-                value={bill.discount === 0 ? "" : String(bill.discount)}
-                onChange={(e) =>
-                  onUpdateBill((prev) => ({
-                    ...prev,
-                    discount: parseAmountInput(e.target.value, cur),
-                  }))
+              <AmountInput
+                value={bill.discount}
+                currency={cur}
+                onChange={(nextDiscount) =>
+                  onUpdateBill((prev) => ({ ...prev, discount: nextDiscount }))
                 }
-                placeholder="0"
+                ariaLabel="Discount amount"
                 className="w-full min-w-0 bg-transparent text-right font-mono text-sm font-semibold text-[var(--accent-text)] tabular-nums focus:outline-none"
               />
             </div>
