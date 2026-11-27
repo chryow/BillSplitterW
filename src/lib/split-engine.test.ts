@@ -3,6 +3,7 @@ import {
   allocateLargestRemainder,
   calculateSplit,
   checkReceiptMath,
+  computeSettlementSummary,
   splitItemQuantity,
 } from "./split-engine";
 import type { BillItem, Participant } from "./types";
@@ -362,5 +363,126 @@ describe("split-engine", () => {
     const shares = allocateLargestRemainder(100, [1, 1, 1]);
     expect(shares.reduce((a, b) => a + b, 0)).toBe(100);
     expect(shares.sort((a, b) => b - a)).toEqual([34, 33, 33]);
+  });
+
+  it("supports custom unequal per-person share weights with proportional tax", () => {
+    // Shared Pizza = Rp 90,000 split 2:1 between You (60,000) and Budi (30,000)
+    // Plus 10% PB1 Tax = Rp 9,000 -> You pays 6,000 tax (total 66,000), Budi pays 3,000 tax (total 33,000)
+    const items: BillItem[] = [
+      {
+        id: "pizza",
+        name: "Truffle Pizza",
+        qty: 1,
+        unitPrice: 90000,
+        totalPrice: 90000,
+        assigneeIds: ["p1", "p2"],
+        assigneeShares: { p1: 2, p2: 1 },
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 9000,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(99000);
+    expect(result.sumOfPeopleTotals).toBe(99000);
+    expect(result.people[0].itemSubtotal).toBe(60000);
+    expect(result.people[0].taxShare).toBe(6000);
+    expect(result.people[0].total).toBe(66000);
+    expect(result.people[0].items[0].isCustomShare).toBe(true);
+    expect(result.people[0].items[0].shareWeight).toBe(2);
+    expect(result.people[0].items[0].totalShares).toBe(3);
+
+    expect(result.people[1].itemSubtotal).toBe(30000);
+    expect(result.people[1].taxShare).toBe(3000);
+    expect(result.people[1].total).toBe(33000);
+    expect(result.people[1].items[0].shareWeight).toBe(1);
+  });
+
+  it("handles 3-way custom shares (3:2:1) with exact cent rounding in USD", () => {
+    const items: BillItem[] = [
+      {
+        id: "platter",
+        name: "Tapas Board",
+        qty: 1,
+        unitPrice: 25,
+        totalPrice: 25,
+        assigneeIds: ["p1", "p2", "p3"],
+        assigneeShares: { p1: 3, p2: 2, p3: 1 },
+      },
+    ];
+
+    const result = calculateSplit({
+      currency: "USD",
+      items,
+      tax: 2.5,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    expect(result.grandTotal).toBe(27.5);
+    expect(result.sumOfPeopleTotals).toBe(27.5);
+    expect(
+      Number(result.people.reduce((sum, p) => sum + p.total, 0).toFixed(2))
+    ).toBe(27.5);
+    // You (3/6 = 50%) should owe the most, then Budi (2/6), then Sari (1/6)
+    expect(result.people[0].total).toBeGreaterThan(result.people[1].total);
+    expect(result.people[1].total).toBeGreaterThan(result.people[2].total);
+  });
+
+  it("computes settlement summary excluding the payer and tracking collected vs remaining", () => {
+    const items: BillItem[] = [
+      {
+        id: "i1",
+        name: "Meal A",
+        qty: 1,
+        unitPrice: 50000,
+        totalPrice: 50000,
+        assigneeIds: ["p1"],
+      },
+      {
+        id: "i2",
+        name: "Meal B",
+        qty: 1,
+        unitPrice: 40000,
+        totalPrice: 40000,
+        assigneeIds: ["p2"],
+      },
+      {
+        id: "i3",
+        name: "Meal C",
+        qty: 1,
+        unitPrice: 30000,
+        totalPrice: 30000,
+        assigneeIds: ["p3"],
+      },
+    ];
+
+    const split = calculateSplit({
+      currency: "IDR",
+      items,
+      tax: 0,
+      serviceCharge: 0,
+      discount: 0,
+      participants: [P_YOU, P_BUDI, P_SARI],
+      feeSplitMode: "proportional",
+    });
+
+    const summary = computeSettlementSummary(split, "p1", ["p2"]);
+    expect(summary.payerName).toBe("You");
+    expect(summary.totalOwedToPayer).toBe(70000);
+    expect(summary.totalCollected).toBe(40000);
+    expect(summary.totalRemaining).toBe(30000);
+    expect(summary.collectibleCount).toBe(2);
+    expect(summary.settledCount).toBe(1);
+    expect(summary.unsettledCount).toBe(1);
   });
 });

@@ -5,17 +5,17 @@ A fast, minimalist, mobile-first Split Bill Web App (PWA) designed for everyday 
 ## Features
 
 - **Zero Login Wall (Guest Mode):** Open straight into **Manual Split** or **Try Sample Receipt**—active bills and payment info auto-save locally in `localStorage`.
-- **Login Mode (Google Sign-In via Supabase):** Sign in anytime to unlock **AI Receipt Scanning** (`10 scans/day` per account), **Saved Split History**, **Synced Payment Info** across devices, **Saved Frequent Friends**, and **Shareable Read-Only Bill Links** (`/bill/[slug]`).
+- **Login Mode (Google Sign-In via Supabase):** Sign in anytime to unlock **AI Receipt Scanning** (DB-backed `10 scans/day` per account with live remaining counter), **Saved Split History**, **Synced Payment Info** across devices, **Saved Frequent Friends**, **Paid/Unpaid Settlement Tracking**, and **Shareable Read-Only Bill Links** (`/bill/[slug]`).
 - **Privacy-First Receipt OCR (`POST /api/scan-receipt`):**
-  - Requires an authenticated Supabase user (`401 AUTH_REQUIRED` for unauthenticated requests) with per-user daily rate limiting (`10/day`, configurable in `src/lib/config.ts`).
+  - Requires an authenticated Supabase user (`401 AUTH_REQUIRED` for unauthenticated requests) with strict DB-backed daily per-user quota (`public.scan_usage`, `10/day`, configurable in `src/lib/config.ts`) and automatic in-memory fallback.
   - Client-side HTML Canvas resize (`max width 1280px`) and JPEG compression (`0.75` quality, `< 2 MB`)—raw photos are discarded immediately after extraction.
   - Server-side MIME + magic-byte + 2 MB validation, SHA-256 deduplication cache, and `@google/genai` (`gemini-3.5-flash-lite`) Structured JSON Output with `ThinkingLevel.MINIMAL`.
   - Graceful fallback into Manual Entry if `GEMINI_API_KEY` is missing, rate-limited (`429`), or parsing fails.
 - **4-Step Fast Workflow:**
-  1. **Capture / Manual / Sample Receipt** (Indonesian restaurant sample with PB1, service charge, discount, and multi-qty items).
-  2. **Review & Fix** (inline editing, 1-tap **Split Qty** for `qty > 1` items, automatic receipt math check banner).
-  3. **Add People & Assign** (colored participant chips, saved friends, tap-to-assign, **Split All**, automatic proportional tax/service/discount).
-  4. **Final Breakdown & Share** (per-person cards, collapsible auto-filled Payment Info, 1-tap **Copy WhatsApp Summary**, and optional share link).
+  1. **Capture / Manual / Sample Receipt** (live remaining scan quota badge + Indonesian restaurant sample receipt).
+  2. **Review & Fix** (inline editing, 1-tap **Split Qty**, quick **+10% PB1 / +11% PPN / +5% / +7% Service** chips, and automatic receipt math check banner).
+  3. **Add People & Assign** (colored participant chips, saved friends, **Paid by** selector, tap-to-assign, **Split All**, and optional unequal custom shares like `2:1` portions).
+  4. **Final Breakdown & Share** (per-person cards with **Paid / Unpaid** settlement checklist, collapsible auto-filled Payment Info, 1-tap **Copy Summary** + **Open in WhatsApp**, and read-only `/bill/[slug]` links with 1-tap **Copy Account Number**).
 - **Multi-Currency:** Default `IDR` (`Rp 45.000`, zero decimals) + quick switcher for `USD`, `SGD`, `MYR`, `EUR`, and `JPY`.
 - **Exact Math Engine (`src/lib/split-engine.ts`):** Minor-unit arithmetic with largest-remainder rounding guarantees individual totals always sum exactly to the grand total.
 
@@ -50,8 +50,8 @@ npm run build
 
 ## Supabase & Google Sign-In Setup
 
-1. **Apply the Database Migration:**
-   - Because this repo includes `supabase/migrations/20261127000000_init_bill_splitter.sql`, Supabase's GitHub Integration applies it automatically on merge—or paste the SQL once into **Supabase Dashboard → SQL Editor → Run**.
+1. **Apply the Database Migrations:**
+   - Because this repo includes migrations under `supabase/migrations/` (`20261127000000_init_bill_splitter.sql` and `20261127010000_scan_quota_and_settlements.sql`), Supabase's GitHub Integration applies them automatically on merge—or paste each SQL file in order into **Supabase Dashboard → SQL Editor → Run**.
 2. **Enable Google OAuth in Supabase:**
    - In Google Cloud Console → **APIs & Services → Credentials → Create OAuth Client ID (Web application)**:
      - Authorized redirect URI: `https://<YOUR_SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`

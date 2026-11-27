@@ -7,6 +7,8 @@ export interface WhatsAppSummaryOptions {
   split: SplitCalculationResult;
   paymentInfo?: PaymentInfo;
   shareUrl?: string | null;
+  paidByParticipantId?: string | null;
+  settledParticipantIds?: string[];
 }
 
 export function hasPaymentInfo(info?: PaymentInfo | null): boolean {
@@ -19,25 +21,58 @@ export function hasPaymentInfo(info?: PaymentInfo | null): boolean {
   );
 }
 
+export function buildWhatsAppShareUrl(summaryText: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+}
+
 /**
  * Generates a neat, paste-ready WhatsApp breakdown with per-person items,
- * fees/discount, totals, and optional payment info / public link.
+ * custom share ratios, payer & settlement badges, fees/discount, totals,
+ * and optional payment info / public link.
  */
 export function formatWhatsAppSummary(options: WhatsAppSummaryOptions): string {
-  const { merchantName, split, paymentInfo, shareUrl } = options;
+  const {
+    merchantName,
+    split,
+    paymentInfo,
+    shareUrl,
+    paidByParticipantId,
+    settledParticipantIds = [],
+  } = options;
   const cur = split.currency;
   const title = merchantName.trim() || "Split Bill";
+  const settledSet = new Set(settledParticipantIds);
+  const payer = paidByParticipantId
+    ? split.people.find((p) => p.participantId === paidByParticipantId) ?? null
+    : null;
 
   const lines: string[] = [];
   lines.push(`🧾 *${title}*`);
   lines.push(`Total: *${formatCurrency(split.grandTotal, cur)}*`);
+  if (payer) {
+    lines.push(`Paid by: *${payer.name}*`);
+  }
   lines.push("");
 
   for (const person of split.people) {
-    lines.push(`👤 *${person.name}* — *${formatCurrency(person.total, cur)}*`);
+    const isPayer = payer?.participantId === person.participantId;
+    const isSettled = !isPayer && settledSet.has(person.participantId);
+    const statusTag = isPayer
+      ? " _(paid bill)_"
+      : isSettled
+        ? " ✅"
+        : "";
+
+    lines.push(
+      `👤 *${person.name}* — *${formatCurrency(person.total, cur)}*${statusTag}`
+    );
 
     for (const item of person.items) {
-      const sharedSuffix = item.shareCount > 1 ? ` (÷${item.shareCount})` : "";
+      const sharedSuffix = item.isCustomShare
+        ? ` (${item.shareWeight}/${item.totalShares})`
+        : item.shareCount > 1
+          ? ` (÷${item.shareCount})`
+          : "";
       const qtyPrefix = item.qty > 1 ? `${item.qty}x ` : "";
       lines.push(
         `  • ${qtyPrefix}${item.name}${sharedSuffix}: ${formatCurrency(item.amount, cur)}`
@@ -69,10 +104,13 @@ export function formatWhatsAppSummary(options: WhatsAppSummaryOptions): string {
   }
 
   if (hasPaymentInfo(paymentInfo) && paymentInfo) {
-    lines.push("💳 *Payment Info*");
-    const headerParts = [paymentInfo.provider.trim(), paymentInfo.accountNumber.trim()].filter(
-      Boolean
+    lines.push(
+      payer ? `💳 *Transfer to ${payer.name}*` : "💳 *Payment Info*"
     );
+    const headerParts = [
+      paymentInfo.provider.trim(),
+      paymentInfo.accountNumber.trim(),
+    ].filter(Boolean);
     if (headerParts.length > 0) {
       lines.push(headerParts.join(" · "));
     }

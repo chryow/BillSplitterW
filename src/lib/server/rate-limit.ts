@@ -7,6 +7,7 @@ interface RateLimitBucket {
 
 export interface RateLimitResult {
   allowed: boolean;
+  used: number;
   remaining: number;
   resetAt: number;
   retryAfterSeconds: number;
@@ -41,19 +42,40 @@ export function extractClientIp(request: Request): string {
   return "unknown-ip";
 }
 
+export function peekScanRateLimit(
+  key: string,
+  limit = MAX_SCANS_PER_DAY
+): { used: number; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const existing = buckets.get(key);
+  if (!existing || existing.resetAt <= now) {
+    return {
+      used: 0,
+      remaining: limit,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    };
+  }
+  return {
+    used: existing.count,
+    remaining: Math.max(0, limit - existing.count),
+    resetAt: existing.resetAt,
+  };
+}
+
 export function consumeScanRateLimit(
-  ip: string,
+  key: string,
   limit = MAX_SCANS_PER_DAY
 ): RateLimitResult {
   const now = Date.now();
   pruneExpiredBuckets(now);
 
-  const existing = buckets.get(ip);
+  const existing = buckets.get(key);
   if (!existing || existing.resetAt <= now) {
     const resetAt = now + RATE_LIMIT_WINDOW_MS;
-    buckets.set(ip, { count: 1, resetAt });
+    buckets.set(key, { count: 1, resetAt });
     return {
       allowed: true,
+      used: 1,
       remaining: Math.max(0, limit - 1),
       resetAt,
       retryAfterSeconds: 0,
@@ -63,6 +85,7 @@ export function consumeScanRateLimit(
   if (existing.count >= limit) {
     return {
       allowed: false,
+      used: existing.count,
       remaining: 0,
       resetAt: existing.resetAt,
       retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
@@ -72,6 +95,7 @@ export function consumeScanRateLimit(
   existing.count += 1;
   return {
     allowed: true,
+    used: existing.count,
     remaining: Math.max(0, limit - existing.count),
     resetAt: existing.resetAt,
     retryAfterSeconds: 0,

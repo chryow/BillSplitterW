@@ -30,6 +30,11 @@ export interface BillItem {
   unitPrice: number;
   totalPrice: number;
   assigneeIds: string[];
+  /**
+   * Optional custom relative share weights per participantId (e.g. { p1: 2, p2: 1 } for 2/3 vs 1/3).
+   * Missing entries default to 1 share.
+   */
+  assigneeShares?: Record<string, number>;
 }
 
 export interface Participant {
@@ -59,6 +64,10 @@ export interface BillState {
   warnings: string[];
   participants: Participant[];
   feeSplitMode: FeeSplitMode;
+  /** Participant ID of whoever paid the restaurant/merchant (null if unspecified). */
+  paidByParticipantId: string | null;
+  /** Participant IDs who have already transferred their share. */
+  settledParticipantIds: string[];
 }
 
 export interface PersonAssignedItem {
@@ -66,6 +75,9 @@ export interface PersonAssignedItem {
   name: string;
   qty: number;
   shareCount: number;
+  shareWeight: number;
+  totalShares: number;
+  isCustomShare: boolean;
   amount: number;
 }
 
@@ -95,6 +107,17 @@ export interface SplitCalculationResult {
   sumOfPeopleTotals: number;
 }
 
+export interface SettlementSummary {
+  payerId: string | null;
+  payerName: string | null;
+  totalOwedToPayer: number;
+  totalCollected: number;
+  totalRemaining: number;
+  collectibleCount: number;
+  settledCount: number;
+  unsettledCount: number;
+}
+
 export interface SavedFriend {
   id: string;
   name: string;
@@ -116,6 +139,8 @@ export interface SavedBillSummary {
   items: BillItem[];
   participants: Participant[];
   payment_info: PaymentInfo;
+  paid_by_participant_id: string | null;
+  settled_participant_ids: string[];
   created_at: string;
 }
 
@@ -125,6 +150,13 @@ export interface UserProfile {
   avatar_url: string | null;
   default_currency: CurrencyCode;
   payment_info: PaymentInfo;
+}
+
+export interface ScanQuota {
+  used: number;
+  remaining: number;
+  limit: number;
+  resetAt?: string;
 }
 
 export interface ScanApiError {

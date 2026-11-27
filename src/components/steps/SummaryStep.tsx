@@ -4,13 +4,16 @@ import { useState } from "react";
 import {
   ArrowLeft,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Circle,
   CloudCheck,
   Copy,
   Globe,
   Link2,
   Loader2,
+  MessageCircle,
   RotateCcw,
   Save,
   UserCheck,
@@ -18,9 +21,10 @@ import {
 } from "lucide-react";
 import { StatusBanner } from "@/components/ui/StatusBanner";
 import { formatCurrency } from "@/lib/currency";
-import { calculateSplit } from "@/lib/split-engine";
+import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
 import type { BillState, PaymentInfo } from "@/lib/types";
 import {
+  buildWhatsAppShareUrl,
   formatWhatsAppSummary,
   hasPaymentInfo,
 } from "@/lib/whatsapp-formatter";
@@ -32,6 +36,8 @@ interface SummaryStepProps {
   supabaseEnabled: boolean;
   savingBill: boolean;
   onPaymentInfoChange: (next: PaymentInfo) => void;
+  onChangePaidBy: (participantId: string) => void;
+  onToggleSettled: (participantId: string) => void;
   onSaveBillToCloud: () => void;
   onOpenAccount: () => void;
   onBackToAssign: () => void;
@@ -45,6 +51,8 @@ export function SummaryStep({
   supabaseEnabled,
   savingBill,
   onPaymentInfoChange,
+  onChangePaidBy,
+  onToggleSettled,
   onSaveBillToCloud,
   onOpenAccount,
   onBackToAssign,
@@ -65,22 +73,38 @@ export function SummaryStep({
     feeSplitMode: "proportional",
   });
 
+  const settlement = computeSettlementSummary(
+    split,
+    bill.paidByParticipantId,
+    bill.settledParticipantIds
+  );
+  const settledSet = new Set(bill.settledParticipantIds);
+
   const shareUrl =
     bill.shareSlug && bill.isPublic && typeof window !== "undefined"
       ? `${window.location.origin}/bill/${bill.shareSlug}`
       : null;
 
-  const handleCopyWhatsApp = async () => {
-    const text = formatWhatsAppSummary({
+  const buildSummaryText = () =>
+    formatWhatsAppSummary({
       merchantName: bill.merchantName,
       feeSplitMode: "proportional",
       split,
       paymentInfo,
       shareUrl,
+      paidByParticipantId: bill.paidByParticipantId,
+      settledParticipantIds: bill.settledParticipantIds,
     });
-    await navigator.clipboard.writeText(text);
+
+  const handleCopyWhatsApp = async () => {
+    await navigator.clipboard.writeText(buildSummaryText());
     setCopiedWhatsApp(true);
     setTimeout(() => setCopiedWhatsApp(false), 2200);
+  };
+
+  const handleOpenWhatsApp = () => {
+    const url = buildWhatsAppShareUrl(buildSummaryText());
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const handleCopyShareLink = async () => {
@@ -92,7 +116,7 @@ export function SummaryStep({
 
   return (
     <section className="space-y-4 pt-3 pb-28">
-      {/* Bill Grand Total Overview */}
+      {/* Bill Grand Total + Settlement Progress Overview */}
       <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -143,6 +167,63 @@ export function SummaryStep({
             </span>
           )}
         </div>
+
+        {/* Who Paid + Settlement Progress Strip */}
+        {bill.participants.length > 1 && (
+          <div className="mt-3 space-y-2 border-t border-[var(--border-subtle)] pt-2.5">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-[11px] font-medium text-[var(--text-muted)]">
+                Paid by:
+              </span>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {bill.participants.map((person) => {
+                  const isPayer = bill.paidByParticipantId === person.id;
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => onChangePaidBy(person.id)}
+                      className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                        isPayer
+                          ? "border-[var(--accent)]/50 bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: person.color }}
+                      />
+                      {person.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {settlement.collectibleCount > 0 && (
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-secondary)]">
+                  {settlement.unsettledCount === 0 ? (
+                    <span className="font-semibold text-[var(--accent-text)]">
+                      All settled ✓
+                    </span>
+                  ) : (
+                    <>
+                      Remaining
+                      {settlement.payerName ? ` to ${settlement.payerName}` : ""}:{" "}
+                      <strong className="font-mono text-[var(--text-primary)] tabular-nums">
+                        {formatCurrency(settlement.totalRemaining, cur)}
+                      </strong>
+                    </>
+                  )}
+                </span>
+                <span className="font-mono text-[var(--text-muted)] tabular-nums">
+                  {settlement.settledCount}/{settlement.collectibleCount} paid
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Unassigned items warning */}
@@ -156,79 +237,137 @@ export function SummaryStep({
         />
       )}
 
-      {/* Per-Person Breakdown Cards */}
+      {/* Per-Person Breakdown Cards with Paid/Unpaid Checklist */}
       <div className="space-y-2.5">
-        {split.people.map((person) => (
-          <article
-            key={person.participantId}
-            className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3.5"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: person.color }}
-                />
-                <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                  {person.name}
-                </h2>
-              </div>
-              <span className="shrink-0 font-mono text-base font-bold text-[var(--text-primary)] tabular-nums">
-                {formatCurrency(person.total, cur)}
-              </span>
-            </div>
+        {split.people.map((person) => {
+          const isPayer = bill.paidByParticipantId === person.participantId;
+          const isSettled = !isPayer && settledSet.has(person.participantId);
+          const showSettleButton = !isPayer && person.total > 0;
 
-            {person.items.length > 0 ? (
-              <ul className="mt-2.5 space-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs">
-                {person.items.map((item, idx) => (
-                  <li
-                    key={`${item.itemId}-${idx}`}
-                    className="flex items-center justify-between gap-2 text-[var(--text-secondary)]"
+          return (
+            <article
+              key={person.participantId}
+              className={`rounded-2xl border p-3.5 transition-colors ${
+                isSettled
+                  ? "border-[var(--accent)]/35 bg-[var(--bg-surface)]/80"
+                  : "border-[var(--border-subtle)] bg-[var(--bg-surface)]"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: person.color }}
+                  />
+                  <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                    {person.name}
+                  </h2>
+                  {isPayer && (
+                    <span className="shrink-0 rounded-full bg-[var(--bg-surface-2)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
+                      Paid bill
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <span
+                    className={`font-mono text-base font-bold tabular-nums ${
+                      isSettled
+                        ? "text-[var(--text-muted)] line-through"
+                        : "text-[var(--text-primary)]"
+                    }`}
                   >
-                    <span className="min-w-0 truncate">
-                      {item.qty > 1 ? `${item.qty}x ` : ""}
-                      {item.name || "Item"}
-                      {item.shareCount > 1 && (
-                        <span className="ml-1 rounded bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
-                          ÷{item.shareCount}
-                        </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 font-mono tabular-nums text-[var(--text-primary)]">
-                      {formatCurrency(item.amount, cur)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 border-t border-[var(--border-subtle)] pt-2 text-xs text-[var(--text-muted)]">
-                No items assigned
-              </p>
-            )}
+                    {formatCurrency(person.total, cur)}
+                  </span>
 
-            {(person.taxShare > 0 ||
-              person.serviceShare > 0 ||
-              person.discountShare > 0) && (
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
-                {person.taxShare > 0 && (
-                  <span className="font-mono tabular-nums">
-                    Tax +{formatCurrency(person.taxShare, cur)}
-                  </span>
-                )}
-                {person.serviceShare > 0 && (
-                  <span className="font-mono tabular-nums">
-                    Svc +{formatCurrency(person.serviceShare, cur)}
-                  </span>
-                )}
-                {person.discountShare > 0 && (
-                  <span className="font-mono tabular-nums text-[var(--accent-text)]">
-                    Disc -{formatCurrency(person.discountShare, cur)}
-                  </span>
-                )}
+                  {showSettleButton && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleSettled(person.participantId)}
+                      aria-pressed={isSettled}
+                      aria-label={
+                        isSettled
+                          ? `Mark ${person.name} as unpaid`
+                          : `Mark ${person.name} as paid`
+                      }
+                      className={`inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${
+                        isSettled
+                          ? "border-[var(--accent)]/45 bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                          : "border-[var(--border-subtle)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      {isSettled ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Paid
+                        </>
+                      ) : (
+                        <>
+                          <Circle className="h-3.5 w-3.5" />
+                          Unpaid
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </article>
-        ))}
+
+              {person.items.length > 0 ? (
+                <ul className="mt-2.5 space-y-1 border-t border-[var(--border-subtle)] pt-2.5 text-xs">
+                  {person.items.map((item, idx) => (
+                    <li
+                      key={`${item.itemId}-${idx}`}
+                      className="flex items-center justify-between gap-2 text-[var(--text-secondary)]"
+                    >
+                      <span className="min-w-0 truncate">
+                        {item.qty > 1 ? `${item.qty}x ` : ""}
+                        {item.name || "Item"}
+                        {item.isCustomShare ? (
+                          <span className="ml-1 rounded bg-[var(--accent-soft)] px-1 py-0.5 font-mono text-[10px] text-[var(--accent-text)]">
+                            {item.shareWeight}/{item.totalShares}
+                          </span>
+                        ) : item.shareCount > 1 ? (
+                          <span className="ml-1 rounded bg-[var(--bg-surface-2)] px-1 py-0.5 font-mono text-[10px] text-[var(--text-muted)]">
+                            ÷{item.shareCount}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="shrink-0 font-mono tabular-nums text-[var(--text-primary)]">
+                        {formatCurrency(item.amount, cur)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 border-t border-[var(--border-subtle)] pt-2 text-xs text-[var(--text-muted)]">
+                  No items assigned
+                </p>
+              )}
+
+              {(person.taxShare > 0 ||
+                person.serviceShare > 0 ||
+                person.discountShare > 0) && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--border-subtle)] pt-2 text-[11px] text-[var(--text-muted)]">
+                  {person.taxShare > 0 && (
+                    <span className="font-mono tabular-nums">
+                      Tax +{formatCurrency(person.taxShare, cur)}
+                    </span>
+                  )}
+                  {person.serviceShare > 0 && (
+                    <span className="font-mono tabular-nums">
+                      Svc +{formatCurrency(person.serviceShare, cur)}
+                    </span>
+                  )}
+                  {person.discountShare > 0 && (
+                    <span className="font-mono tabular-nums text-[var(--accent-text)]">
+                      Disc -{formatCurrency(person.discountShare, cur)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
 
         {/* Exact Sum Reconciliation Strip */}
         <div className="flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
@@ -243,7 +382,7 @@ export function SummaryStep({
       </div>
 
       {/* Collapsible Payment Info Panel */}
-      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
         <button
           type="button"
           onClick={() => setPaymentOpen((prev) => !prev)}
@@ -456,19 +595,30 @@ export function SummaryStep({
           <button
             type="button"
             onClick={handleCopyWhatsApp}
-            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] active:scale-[0.99]"
+            className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] active:scale-[0.99]"
           >
             {copiedWhatsApp ? (
               <>
                 <Check className="h-4 w-4" />
-                <span>Copied for WhatsApp!</span>
+                <span>Copied!</span>
               </>
             ) : (
               <>
                 <Copy className="h-4 w-4" />
-                <span>Copy WhatsApp Summary</span>
+                <span>Copy Summary</span>
               </>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenWhatsApp}
+            title="Open directly in WhatsApp"
+            aria-label="Share via WhatsApp"
+            className="flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent-soft)] px-3.5 text-xs font-semibold text-[var(--accent-text)] transition-opacity hover:opacity-90 active:scale-[0.99]"
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span className="hidden xs:inline sm:inline">WhatsApp</span>
           </button>
 
           <button

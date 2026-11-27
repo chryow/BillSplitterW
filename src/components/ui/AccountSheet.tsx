@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { BottomSheet } from "@/components/layout/BottomSheet";
 import { formatCurrency } from "@/lib/currency";
-import { calculateSplit } from "@/lib/split-engine";
+import { calculateSplit, computeSettlementSummary } from "@/lib/split-engine";
 import type { SavedBillSummary } from "@/lib/types";
 import { formatWhatsAppSummary } from "@/lib/whatsapp-formatter";
 
@@ -74,10 +74,12 @@ export function AccountSheet({
         : null;
     const text = formatWhatsAppSummary({
       merchantName: bill.merchant_name,
-      feeSplitMode: bill.fee_split_mode,
+      feeSplitMode: "proportional",
       split,
       paymentInfo: bill.payment_info,
       shareUrl,
+      paidByParticipantId: bill.paid_by_participant_id,
+      settledParticipantIds: bill.settled_participant_ids,
     });
     await navigator.clipboard.writeText(text);
     setCopiedId(`wa-${bill.id}`);
@@ -264,6 +266,20 @@ export function AccountSheet({
                     undefined,
                     { month: "short", day: "numeric" }
                   );
+                  const split = calculateSplit({
+                    currency: bill.currency,
+                    items: bill.items,
+                    tax: bill.tax,
+                    serviceCharge: bill.service_charge,
+                    discount: bill.discount,
+                    participants: bill.participants,
+                    feeSplitMode: "proportional",
+                  });
+                  const settlement = computeSettlementSummary(
+                    split,
+                    bill.paid_by_participant_id,
+                    bill.settled_participant_ids
+                  );
                   return (
                     <div
                       key={bill.id}
@@ -281,10 +297,25 @@ export function AccountSheet({
                           <p className="truncate text-sm font-semibold text-[var(--text-primary)] hover:text-[var(--accent-text)]">
                             {bill.merchant_name || "Split Bill"}
                           </p>
-                          <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-                            {dateLabel} · {bill.participants.length} people ·{" "}
-                            {bill.items.length} items
-                          </p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                            <span>
+                              {dateLabel} · {bill.participants.length} people ·{" "}
+                              {bill.items.length} items
+                            </span>
+                            {settlement.collectibleCount > 0 && (
+                              <span
+                                className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold ${
+                                  settlement.unsettledCount === 0
+                                    ? "bg-[var(--accent-soft)] text-[var(--accent-text)]"
+                                    : "bg-[var(--bg-surface)] text-[var(--text-secondary)]"
+                                }`}
+                              >
+                                {settlement.unsettledCount === 0
+                                  ? "All settled ✓"
+                                  : `${settlement.settledCount}/${settlement.collectibleCount} paid`}
+                              </span>
+                            )}
+                          </div>
                         </button>
                         <span className="shrink-0 font-mono text-sm font-semibold text-[var(--text-primary)] tabular-nums">
                           {formatCurrency(bill.grand_total, bill.currency)}

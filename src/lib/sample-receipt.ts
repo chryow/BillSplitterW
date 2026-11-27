@@ -70,6 +70,8 @@ export function createSampleReceiptState(defaultSelfName = "You"): BillState {
       { id: p3, name: "Sari", color: PARTICIPANT_COLORS[2] },
     ],
     feeSplitMode: "proportional",
+    paidByParticipantId: p1,
+    settledParticipantIds: [],
   };
 }
 
@@ -77,6 +79,7 @@ export function createEmptyBillState(
   currency: BillState["currency"] = "IDR",
   defaultSelfName = "You"
 ): BillState {
+  const firstPersonId = `p-${Date.now()}-1`;
   return {
     savedBillId: null,
     shareSlug: null,
@@ -99,8 +102,10 @@ export function createEmptyBillState(
     scannedGrandTotal: null,
     warnings: [],
     participants: [
-      { id: `p-${Date.now()}-1`, name: defaultSelfName, color: PARTICIPANT_COLORS[0] },
+      { id: firstPersonId, name: defaultSelfName, color: PARTICIPANT_COLORS[0] },
     ],
     feeSplitMode: "proportional",
+    paidByParticipantId: firstPersonId,
+    settledParticipantIds: [],
   };
 }

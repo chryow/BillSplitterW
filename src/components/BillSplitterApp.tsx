@@ -36,6 +36,7 @@ import {
   saveBillToAccount,
   saveFriend,
   updateBillPublicVisibility,
+  updateBillSettlements,
   upsertUserPaymentInfo,
 } from "@/lib/supabase/bills";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -48,6 +49,7 @@ import type {
   SavedBillSummary,
   SavedFriend,
   ScannedReceiptResponse,
+  ScanQuota,
 } from "@/lib/types";
 import { hasPaymentInfo } from "@/lib/whatsapp-formatter";
 
@@ -72,9 +74,10 @@ export function BillSplitterApp() {
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
 
-  // Auth & cloud sync state
+  // Auth, scan quota & cloud sync state
   const [user, setUser] = useState<SignedInUser | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [scanQuota, setScanQuota] = useState<ScanQuota | null>(null);
   const [savedBills, setSavedBills] = useState<SavedBillSummary[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [savedFriends, setSavedFriends] = useState<SavedFriend[]>([]);
@@ -121,36 +124,64 @@ export function BillSplitterApp() {
     saveActiveSession({ step, bill });
   }, [hydrated, step, bill]);
 
-  // Load Supabase user session & cloud profile/history/friends
-  const hydrateCloudAccount = useCallback(async (userId: string) => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-
-    setBillsLoading(true);
+  const fetchScanQuota = useCallback(async () => {
     try {
-      const [profile, friends, bills] = await Promise.all([
-        fetchUserProfile(supabase, userId),
-        fetchSavedFriends(supabase, userId),
-        fetchUserBills(supabase, userId),
-      ]);
-
-      setSavedFriends(friends);
-      setSavedBills(bills);
-
-      if (profile && hasPaymentInfo(profile.payment_info)) {
-        setPaymentInfo(profile.payment_info);
-        saveLocalPaymentInfo(profile.payment_info);
-      } else {
-        // If user already had local payment info before signing in, sync it up
-        const localInfo = loadLocalPaymentInfo();
-        if (hasPaymentInfo(localInfo)) {
-          await upsertUserPaymentInfo(supabase, userId, localInfo);
-        }
+      const res = await fetch("/api/scan-quota", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        signedIn?: boolean;
+        used?: number;
+        remaining?: number;
+        limit?: number;
+        resetAt?: string;
+      };
+      if (data.signedIn && typeof data.remaining === "number" && typeof data.limit === "number") {
+        setScanQuota({
+          used: typeof data.used === "number" ? data.used : Math.max(0, data.limit - data.remaining),
+          remaining: data.remaining,
+          limit: data.limit,
+          resetAt: data.resetAt,
+        });
       }
-    } finally {
-      setBillsLoading(false);
+    } catch {
+      // Non-fatal: UI still functions without pre-fetched quota pill
     }
   }, []);
+
+  // Load Supabase user session & cloud profile/history/friends/quota
+  const hydrateCloudAccount = useCallback(
+    async (userId: string) => {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+
+      setBillsLoading(true);
+      try {
+        const [profile, friends, bills] = await Promise.all([
+          fetchUserProfile(supabase, userId),
+          fetchSavedFriends(supabase, userId),
+          fetchUserBills(supabase, userId),
+        ]);
+
+        setSavedFriends(friends);
+        setSavedBills(bills);
+        void fetchScanQuota();
+
+        if (profile && hasPaymentInfo(profile.payment_info)) {
+          setPaymentInfo(profile.payment_info);
+          saveLocalPaymentInfo(profile.payment_info);
+        } else {
+          // If user already had local payment info before signing in, sync it up
+          const localInfo = loadLocalPaymentInfo();
+          if (hasPaymentInfo(localInfo)) {
+            await upsertUserPaymentInfo(supabase, userId, localInfo);
+          }
+        }
+      } finally {
+        setBillsLoading(false);
+      }
+    },
+    [fetchScanQuota]
+  );
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -168,6 +199,7 @@ export function BillSplitterApp() {
       if (!mounted) return;
       if (!authUser) {
         setUser(null);
+        setScanQuota(null);
         setSavedBills([]);
         setSavedFriends([]);
         return;
@@ -256,6 +288,81 @@ export function BillSplitterApp() {
     }
   };
 
+  const syncSettlementsToCloud = useCallback(
+    (
+      billId: string | null,
+      paidByParticipantId: string | null,
+      settledParticipantIds: string[]
+    ) => {
+      if (!billId || !user) return;
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return;
+
+      setSavedBills((prev) =>
+        prev.map((b) =>
+          b.id === billId
+            ? {
+                ...b,
+                paid_by_participant_id: paidByParticipantId,
+                settled_participant_ids: settledParticipantIds,
+              }
+            : b
+        )
+      );
+      void updateBillSettlements(
+        supabase,
+        billId,
+        paidByParticipantId,
+        settledParticipantIds
+      );
+    },
+    [user]
+  );
+
+  const handleChangePaidBy = (participantId: string) => {
+    let nextSettled: string[] = [];
+    let billIdToSync: string | null = null;
+
+    setBill((prev) => {
+      nextSettled = prev.settledParticipantIds.filter(
+        (id) => id !== participantId
+      );
+      billIdToSync = prev.savedBillId;
+      return {
+        ...prev,
+        paidByParticipantId: participantId,
+        settledParticipantIds: nextSettled,
+      };
+    });
+
+    queueMicrotask(() => {
+      syncSettlementsToCloud(billIdToSync, participantId, nextSettled);
+    });
+  };
+
+  const handleToggleSettled = (participantId: string) => {
+    let nextSettled: string[] = [];
+    let paidBy: string | null = null;
+    let billIdToSync: string | null = null;
+
+    setBill((prev) => {
+      const exists = prev.settledParticipantIds.includes(participantId);
+      nextSettled = exists
+        ? prev.settledParticipantIds.filter((id) => id !== participantId)
+        : [...prev.settledParticipantIds, participantId];
+      paidBy = prev.paidByParticipantId;
+      billIdToSync = prev.savedBillId;
+      return {
+        ...prev,
+        settledParticipantIds: nextSettled,
+      };
+    });
+
+    queueMicrotask(() => {
+      syncSettlementsToCloud(billIdToSync, paidBy, nextSettled);
+    });
+  };
+
   const handleScanSuccess = (data: ScannedReceiptResponse) => {
     const detectedCurrency = normalizeCurrencyCode(data.currency, bill.currency);
     const items =
@@ -279,22 +386,8 @@ export function BillSplitterApp() {
             },
           ];
 
-    setBill((prev) => ({
-      savedBillId: null,
-      shareSlug: null,
-      isPublic: true,
-      merchantName: data.merchant_name ?? "",
-      currency: detectedCurrency,
-      items,
-      tax: roundForCurrency(data.tax ?? 0, detectedCurrency),
-      serviceCharge: roundForCurrency(data.service_charge ?? 0, detectedCurrency),
-      discount: roundForCurrency(data.discount ?? 0, detectedCurrency),
-      scannedGrandTotal:
-        data.grand_total !== null
-          ? roundForCurrency(data.grand_total, detectedCurrency)
-          : null,
-      warnings: data.warnings ?? [],
-      participants:
+    setBill((prev) => {
+      const participants =
         prev.participants.length > 0
           ? prev.participants
           : [
@@ -303,9 +396,31 @@ export function BillSplitterApp() {
                 name: defaultSelfName,
                 color: PARTICIPANT_COLORS[0],
               },
-            ],
-      feeSplitMode: "proportional",
-    }));
+            ];
+      return {
+        savedBillId: null,
+        shareSlug: null,
+        isPublic: true,
+        merchantName: data.merchant_name ?? "",
+        currency: detectedCurrency,
+        items,
+        tax: roundForCurrency(data.tax ?? 0, detectedCurrency),
+        serviceCharge: roundForCurrency(
+          data.service_charge ?? 0,
+          detectedCurrency
+        ),
+        discount: roundForCurrency(data.discount ?? 0, detectedCurrency),
+        scannedGrandTotal:
+          data.grand_total !== null
+            ? roundForCurrency(data.grand_total, detectedCurrency)
+            : null,
+        warnings: data.warnings ?? [],
+        participants,
+        feeSplitMode: "proportional",
+        paidByParticipantId: prev.paidByParticipantId ?? participants[0]?.id ?? null,
+        settledParticipantIds: [],
+      };
+    });
     setStep(2);
   };
 
@@ -360,6 +475,7 @@ export function BillSplitterApp() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
+    setScanQuota(null);
     setSavedBills([]);
     setSavedFriends([]);
     setAccountOpen(false);
@@ -411,6 +527,9 @@ export function BillSplitterApp() {
       warnings: [],
       participants: saved.participants,
       feeSplitMode: "proportional",
+      paidByParticipantId:
+        saved.paid_by_participant_id ?? saved.participants[0]?.id ?? null,
+      settledParticipantIds: saved.settled_participant_ids ?? [],
     });
     setStep(4);
   };
@@ -510,10 +629,12 @@ export function BillSplitterApp() {
             isSignedIn={Boolean(user)}
             supabaseEnabled={supabaseEnabled}
             authLoading={authLoading}
+            scanQuota={scanQuota}
             hasActiveBill={hasValidItems}
             activeMerchant={bill.merchantName}
             activeTotal={activeTotal}
             onSignInGoogle={handleSignInGoogle}
+            onQuotaUpdate={setScanQuota}
             onScanSuccess={handleScanSuccess}
             onStartManual={handleStartManual}
             onTrySample={handleTrySample}
@@ -552,6 +673,8 @@ export function BillSplitterApp() {
             supabaseEnabled={supabaseEnabled}
             savingBill={savingBill}
             onPaymentInfoChange={handlePaymentInfoChange}
+            onChangePaidBy={handleChangePaidBy}
+            onToggleSettled={handleToggleSettled}
             onSaveBillToCloud={handleSaveBillToCloud}
             onOpenAccount={() => setAccountOpen(true)}
             onBackToAssign={() => setStep(3)}
