@@ -23,7 +23,7 @@ export function CurrencySheet({
       open={open}
       onClose={onClose}
       title="Select Currency"
-      subtitle="Formatting and rounding adjust automatically"
+      subtitle="Scanned receipts & existing prices auto-convert using live FX rates"
     >
       <div className="space-y-1.5">
         {CURRENCY_LIST.map((cur) => {

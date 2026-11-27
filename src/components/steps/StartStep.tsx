@@ -118,6 +118,7 @@ export function StartStep({
         "file",
         new File([processedBlob], "receipt.jpg", { type: processed.mimeType })
       );
+      formData.append("targetCurrency", currency);
 
       const response = await fetch("/api/scan-receipt", {
         method: "POST",

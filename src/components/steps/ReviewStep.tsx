@@ -15,6 +15,7 @@ import {
   getCurrencyConfig,
   roundForCurrency,
 } from "@/lib/currency";
+import { formatExchangeRateLabel } from "@/lib/fx";
 import { checkReceiptMath, splitItemQuantity } from "@/lib/split-engine";
 import type { BillItem, BillState } from "@/lib/types";
 
@@ -22,6 +23,7 @@ interface ReviewStepProps {
   bill: BillState;
   onUpdateBill: (updater: (prev: BillState) => BillState) => void;
   onDeleteItemWithUndo: (itemId: string) => void;
+  onRevertConversion?: () => void;
   onOpenCurrency: () => void;
   onBack: () => void;
   onNext: () => void;
@@ -45,6 +47,7 @@ export function ReviewStep({
   bill,
   onUpdateBill,
   onDeleteItemWithUndo,
+  onRevertConversion,
   onOpenCurrency,
   onBack,
   onNext,
@@ -199,6 +202,24 @@ export function ReviewStep({
           </button>
         </div>
       </div>
+
+      {/* Auto Currency Conversion Notice */}
+      {bill.conversion && (
+        <StatusBanner
+          variant="info"
+          title={`Auto-converted from ${bill.conversion.fromCurrency} → ${bill.conversion.toCurrency}`}
+          message={`${formatExchangeRateLabel(bill.conversion.fromCurrency, bill.conversion.toCurrency, bill.conversion.rate)}${bill.conversion.originalGrandTotal ? ` · Original receipt total ${formatCurrency(bill.conversion.originalGrandTotal, bill.conversion.fromCurrency)}` : ""}${bill.conversion.source === "fallback" ? " (approx. rate)" : ""}.`}
+          actionLabel={
+            onRevertConversion
+              ? `Use original ${bill.conversion.fromCurrency}`
+              : undefined
+          }
+          onAction={onRevertConversion}
+          onDismiss={() =>
+            onUpdateBill((prev) => ({ ...prev, conversion: null }))
+          }
+        />
+      )}
 
       {/* OCR Warnings */}
       {bill.warnings.length > 0 && (

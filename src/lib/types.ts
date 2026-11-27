@@ -11,6 +11,14 @@ export interface ScannedReceiptItem {
   total_price: number;
 }
 
+export interface ReceiptConversionInfo {
+  fromCurrency: CurrencyCode;
+  toCurrency: CurrencyCode;
+  rate: number;
+  source: "live" | "fallback";
+  originalGrandTotal: number | null;
+}
+
 export interface ScannedReceiptResponse {
   merchant_name: string | null;
   currency: string | null;
@@ -21,6 +29,7 @@ export interface ScannedReceiptResponse {
   discount: number;
   grand_total: number | null;
   warnings: string[];
+  conversion?: ReceiptConversionInfo;
 }
 
 export interface BillItem {
@@ -62,6 +71,7 @@ export interface BillState {
   discount: number;
   scannedGrandTotal: number | null;
   warnings: string[];
+  conversion?: ReceiptConversionInfo | null;
   participants: Participant[];
   feeSplitMode: FeeSplitMode;
   /** Participant ID of whoever paid the restaurant/merchant (null if unspecified). */
